@@ -64,4 +64,9 @@ inline constexpr int pieces[Color::BOTH_COLORS][NUM_PIECE_TYPES] = {
 };
 
 inline const std::string INITIAL_POSITION =
-"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+int getLSB(uint64 bitboard);
+int getMSB(uint64 bitboard);
+int countBits(uint64 bitboard);
+uint64 currentTime();
