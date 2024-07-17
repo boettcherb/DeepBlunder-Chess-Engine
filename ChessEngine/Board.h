@@ -71,4 +71,5 @@ class Board {
 public:
     Board(const std::string& starting_fen);
 
+    void reset();
 };
