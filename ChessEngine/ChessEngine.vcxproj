@@ -24,6 +24,7 @@
     <ProjectGuid>{677b8882-a2bc-465f-9d6c-dc6abe1a4dcd}</ProjectGuid>
     <RootNamespace>ChessEngine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>DeepBlunderChessEngine</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
