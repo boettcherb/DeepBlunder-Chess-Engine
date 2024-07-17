@@ -15,7 +15,7 @@ int getLSB(uint64 bitboard) {
 #elif defined(COMPILER_MSVS)
     unsigned long index;
     _BitScanForward64(&index, bitboard);
-    return (int) index;
+    return static_cast<int>(index);
 #else
     int index = 0;
     while (!(bitboard & 0x1)) {
