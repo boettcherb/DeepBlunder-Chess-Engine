@@ -74,4 +74,7 @@ public:
 
     void reset();
     bool setToFEN(const std::string& fen);
+
+private:
+    void generatePositionKey();
 };

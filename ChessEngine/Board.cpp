@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "HashKey.h"
 #include <string>
 #include <algorithm>
 #include <vector>
@@ -22,18 +23,17 @@ Board::Board(const std::string& starting_fen) : Board() {
  *
  * Reset the board's member variables to their default values. sideToMove is
  * set to BOTH_COLORS so that an error occurs if it is not set to either WHITE
- * or BLACK during initialization. castlePerms is set to -1, which is not a
- * valid set of flags. The default value of the pieces array is
- * NO_PIECE. All other default values are 0.
+ * or BLACK during initialization. castlePerms, enPassantSquare, and the pieces
+ * in the pieces array are set to INVALID. All other default values are 0.
  *
  */
 void Board::reset() {
     std::fill_n(pieceBitboards, NUM_PIECE_TYPES, 0);
     std::fill_n(colorBitboards, 3, 0);
-    std::fill_n(pieces, 64, static_cast<unsigned char>(NO_PIECE));
+    std::fill_n(pieces, 64, static_cast<unsigned char>(INVALID));
     sideToMove = Color::BOTH_COLORS;
-    castlePerms = -1;
-    ply = searchPly = fiftyMoveCount = enPassantSquare = 0;
+    castlePerms = enPassantSquare = INVALID;
+    ply = searchPly = fiftyMoveCount = 0;
     material[0] = material[1] = 0;
     positionKey = 0;
     history.clear();
@@ -159,7 +159,7 @@ bool Board::setToFEN(const std::string& fen) {
             castlePerms = i;
         }
     }
-    if (castlePerms == -1) {
+    if (castlePerms == INVALID) {
         std::cerr << "Error: invalid fen: invalid castle permissions token\n"
             << "FEN: \"" << fen << '\"' << std::endl;
         return false;
@@ -195,7 +195,7 @@ bool Board::setToFEN(const std::string& fen) {
     }
 
     for (int sq = 0; sq < 64; ++sq) {
-        if (pieces[sq] == NO_PIECE) continue;
+        if (pieces[sq] == INVALID) continue;
         assert(pieces[sq] >= 0 && pieces[sq] < NUM_PIECE_TYPES);
         material[pieceColor[pieces[sq]]] += pieceMaterial[pieces[sq]];
         pieceBitboards[pieces[sq]] |= 1ULL << sq;

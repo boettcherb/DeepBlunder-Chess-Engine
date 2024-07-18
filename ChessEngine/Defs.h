@@ -40,7 +40,7 @@ enum Square {
     A8, B8, C8, D8, E8, F8, G8, H8,
 };
 
-inline constexpr int NO_PIECE = -1;
+inline constexpr int INVALID = -1;
 inline constexpr int NUM_PIECE_TYPES = 12;
 inline constexpr int MOVE_FLAGS = 0x1F00000;
 inline constexpr int CAPTURE_FLAG = 0x0100000;
