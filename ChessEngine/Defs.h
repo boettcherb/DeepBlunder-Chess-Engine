@@ -60,7 +60,7 @@ inline constexpr int pieceColor[NUM_PIECE_TYPES] = {
     BLACK, BLACK, BLACK, BLACK, BLACK, BLACK,
 };
 
-inline constexpr int material[NUM_PIECE_TYPES] = {
+inline constexpr int pieceMaterial[NUM_PIECE_TYPES] = {
     1, 3, 3, 5, 9, 0, 1, 3, 3, 5, 9, 0
 };
 
