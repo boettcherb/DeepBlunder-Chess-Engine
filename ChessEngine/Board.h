@@ -8,7 +8,7 @@
  * 
  * In this engine, a chessboard is represented using bitboards. Each bitboard
  * is a 64-bit number where the least significant bit (bit 0) represents square
- * A1, bit 1 represents square A2, ..., and the most significant bit (bit 63)
+ * A1, bit 1 represents square B1, ..., and the most significant bit (bit 63)
  * represents square H8. A bit is set to 1 if there is a piece on that square.
  *
  * pieceBitboards:    The bitboards for this chessboard. There are 12 of them,
@@ -69,7 +69,8 @@ class Board {
     uint64 positionKey;
 
 public:
-    Board(const std::string& starting_fen = INITIAL_POSITION);
+    Board();
+    Board(const std::string& starting_fen);
 
     void reset();
     bool setToFEN(const std::string& fen);

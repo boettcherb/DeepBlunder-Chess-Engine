@@ -5,13 +5,15 @@
 
 /*
  *
- * Board constructor. Initializes all board member variables and sets up the
- * board according to the given FEN string. If no FEN string is given, the
- * board is set up to the starting chess position.
+ * Board constructor. Initializes all board member variables to a default
+ * value. If a FEN string is given, the board is set up according to that
+ * string.
  *
  */
-Board::Board(const std::string& starting_fen) {
+Board::Board() {
     reset();
+}
+Board::Board(const std::string& starting_fen) : Board() {
     setToFEN(starting_fen);
 }
 

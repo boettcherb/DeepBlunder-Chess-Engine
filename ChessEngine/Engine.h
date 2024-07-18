@@ -16,4 +16,5 @@ public:
     Engine();
     Engine(const std::string& starting_fen);
 
+    void setupBoard(const std::string& fen);
 };
