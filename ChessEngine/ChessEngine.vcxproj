@@ -134,6 +134,7 @@
     <ClInclude Include="Board.h" />
     <ClInclude Include="Defs.h" />
     <ClInclude Include="Engine.h" />
+    <ClInclude Include="HashKey.h" />
     <ClInclude Include="MoveGenerator.h" />
     <ClInclude Include="Search.h" />
   </ItemGroup>
@@ -141,6 +142,7 @@
     <ClCompile Include="Board.cpp" />
     <ClCompile Include="Defs.cpp" />
     <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="HashKey.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MoveGenerator.cpp" />
     <ClCompile Include="Search.cpp" />
