@@ -202,8 +202,30 @@ bool Board::setToFEN(const std::string& fen) {
         colorBitboards[pieceColor[pieces[sq]]] |= 1ULL << sq;
         colorBitboards[pieceColor[BOTH_COLORS]] |= 1ULL << sq;
     }
-
-    // TODO: set position key
-
+    generatePositionKey();
     return true;
+}
+
+
+/*
+ *
+ * Generate an (almost) unique position key for the board. This position key
+ * will be used to detect repetitions and as a key into the transposition
+ * table. After every move the position key can be very quickly updated along
+ * with the chessboard, which makes comparing two positions very efficient.
+ *
+ */
+void Board::generatePositionKey() {
+    if (sideToMove == WHITE) {
+        positionKey ^= getSideKey();
+    }
+    for (int sq = 0; sq < 64; ++sq) {
+        if (pieces[sq] != INVALID) {
+            positionKey ^= getPieceKey(pieces[sq], sq);
+        }
+    }
+    positionKey ^= getCastleKey(castlePerms);
+    if (enPassantSquare != INVALID) {
+        positionKey |= getEnPassantKey(enPassantSquare);
+    }
 }
