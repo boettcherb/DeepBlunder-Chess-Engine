@@ -42,6 +42,18 @@ enum Square {
 
 inline constexpr int NO_PIECE = -1;
 inline constexpr int NUM_PIECE_TYPES = 12;
+inline constexpr int MOVE_FLAGS = 0x1F00000;
+inline constexpr int CAPTURE_FLAG = 0x0100000;
+inline constexpr int PROMOTION_FLAG = 0x0200000;
+inline constexpr int CAPTURE_AND_PROMOTION_FLAG = 0x0300000;
+inline constexpr int CASTLE_FLAG = 0x0400000;
+inline constexpr int EN_PASSANT_FLAG = 0x0800000;
+inline constexpr int PAWN_START_FLAG = 0x1000000;
+
+inline constexpr int CASTLE_WK = 0x1;
+inline constexpr int CASTLE_WQ = 0x2;
+inline constexpr int CASTLE_BK = 0x4;
+inline constexpr int CASTLE_BQ = 0x8;
 
 inline constexpr int pieceColor[NUM_PIECE_TYPES] = {
     WHITE, WHITE, WHITE, WHITE, WHITE, WHITE,
