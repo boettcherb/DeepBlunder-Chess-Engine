@@ -69,7 +69,8 @@ class Board {
     uint64 positionKey;
 
 public:
-    Board(const std::string& starting_fen);
+    Board(const std::string& starting_fen = INITIAL_POSITION);
 
     void reset();
+    bool setToFEN(const std::string& fen);
 };
