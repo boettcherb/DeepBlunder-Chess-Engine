@@ -20,7 +20,8 @@ Board::Board(const std::string& starting_fen) {
  *
  * Reset the board's member variables to their default values. sideToMove is
  * set to BOTH_COLORS so that an error occurs if it is not set to either WHITE
- * or BLACK during initialization. The default value of the pieces array is
+ * or BLACK during initialization. castlePerms is set to -1, which is not a
+ * valid set of flags. The default value of the pieces array is
  * NO_PIECE. All other default values are 0.
  *
  */
@@ -29,7 +30,8 @@ void Board::reset() {
     std::fill_n(colorBitboards, 3, 0);
     std::fill_n(pieces, 64, static_cast<unsigned char>(NO_PIECE));
     sideToMove = Color::BOTH_COLORS;
-    ply = searchPly = castlePerms = fiftyMoveCount = enPassantSquare = 0;
+    castlePerms = -1;
+    ply = searchPly = fiftyMoveCount = enPassantSquare = 0;
     material[0] = material[1] = 0;
     positionKey = 0;
     history.clear();
@@ -150,14 +152,12 @@ bool Board::setToFEN(const std::string& fen) {
         "-", "K", "Q", "KQ", "k", "Kk", "Qk", "KQk", "q", "Kq", "Qq", 
         "KQq", "kq", "Kkq", "Qkq", "KQkq"
     };
-    bool found = false;
     for (int i = 0; i < 16; ++i) {
         if (possibleCastlePerms[i] == tokens[2]) {
             castlePerms = i;
-            found = true;
         }
     }
-    if (!found) {
+    if (castlePerms == -1) {
         std::cerr << "Error: invalid fen: invalid castle permissions token\n"
             << "FEN: \"" << fen << '\"' << std::endl;
         return false;
@@ -191,6 +191,17 @@ bool Board::setToFEN(const std::string& fen) {
             "number token\nFEN: \"" << fen << '\"' << std::endl;
         return false;
     }
+
+    for (int sq = 0; sq < 64; ++sq) {
+        if (pieces[sq] == NO_PIECE) continue;
+        assert(pieces[sq] >= 0 && pieces[sq] < NUM_PIECE_TYPES);
+        material[pieceColor[pieces[sq]]] += pieceMaterial[pieces[sq]];
+        pieceBitboards[pieces[sq]] |= 1ULL << sq;
+        colorBitboards[pieceColor[pieces[sq]]] |= 1ULL << sq;
+        colorBitboards[pieceColor[BOTH_COLORS]] |= 1ULL << sq;
+    }
+
+    // TODO: set position key
 
     return true;
 }
