@@ -1,9 +1,11 @@
 #include "Board.h"
 #include "Defs.h"
 #include "HashKey.h"
+#include "Attack.h"
 #include <string>
 #include <algorithm>
 #include <vector>
+
 
 /*
  *
@@ -38,6 +40,60 @@ void Board::reset() {
     material[0] = material[1] = 0;
     positionKey = 0;
     history.clear();
+}
+
+
+/*
+ * 
+ * Return true if any of the squares marked by a 1 in 'squares' are attacked by
+ * a piece of the side 'side'. This method generates all attack bitboards of
+ * the pieces of side 'side', combines them into one bitboard, and checks if
+ * this bitboard overlaps with 'squares'. If so, then there is a square in
+ * 'squares' that is being attacked by 'side'. This method is used to determine
+ * if a move is illegal because it left the king in check, if a castle move is
+ * illegal because the king moved through an attacked square, or to determine
+ * if a position is checkmate vs stalemate.
+ * 
+ */
+bool Board::isAttackedBy(uint64 squares, int side) {
+    assert(validBoard());
+    assert(side == WHITE || side == BLACK);
+    uint64 attacks = 0ULL, knights, bishops, rooks, queens;
+    if (side == WHITE) {
+        attacks |= attack::getKingAttacks(pieceBitboards[WHITE_KING]);
+        attacks |= attack::getWhitePawnAttacksLeft(pieceBitboards[WHITE_PAWN]);
+        attacks |= attack::getWhitePawnAttacksRight(pieceBitboards[WHITE_PAWN]);
+        knights = pieceBitboards[WHITE_KNIGHT];
+        bishops = pieceBitboards[WHITE_BISHOP];
+        rooks = pieceBitboards[WHITE_ROOK];
+        queens = pieceBitboards[WHITE_QUEEN];
+    } else {
+        attacks |= attack::getKingAttacks(pieceBitboards[BLACK_KING]);
+        attacks |= attack::getBlackPawnAttacksLeft(pieceBitboards[BLACK_PAWN]);
+        attacks |= attack::getBlackPawnAttacksRight(pieceBitboards[BLACK_PAWN]);
+        knights = pieceBitboards[BLACK_KNIGHT];
+        bishops = pieceBitboards[BLACK_BISHOP];
+        rooks = pieceBitboards[BLACK_ROOK];
+        queens = pieceBitboards[BLACK_QUEEN];
+    }
+    uint64 allPieces = colorBitboards[BOTH_COLORS];
+    while (knights) {
+        attacks |= attack::getKnightAttacks(getLSB(knights));
+        knights &= knights - 1;
+    }
+    while (bishops) {
+        attacks |= attack::getBishopAttacks(getLSB(bishops), allPieces);
+        bishops &= bishops - 1;
+    }
+    while (rooks) {
+        attacks |= attack::getRookAttacks(getLSB(rooks), allPieces);
+        rooks &= rooks - 1;
+    }
+    while (queens) {
+        attacks |= attack::getQueenAttacks(getLSB(queens), allPieces);
+        queens &= queens - 1;
+    }
+    return (attacks & squares) != 0ULL;
 }
 
 

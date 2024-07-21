@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+
 /*
  * 
  * In this engine, a chessboard is represented using bitboards. Each bitboard
@@ -73,6 +74,7 @@ public:
     Board(const std::string& starting_fen);
 
     void reset();
+    bool isAttackedBy(uint64 squares, int side);
     bool setToFEN(const std::string& fen);
 
 private:
