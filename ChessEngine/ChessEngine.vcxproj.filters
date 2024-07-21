@@ -24,10 +24,7 @@
     <ClInclude Include="Defs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MoveGenerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Search.h">
+    <ClInclude Include="MoveList.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="HashKey.h">
@@ -47,10 +44,7 @@
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MoveGenerator.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Search.cpp">
+    <ClCompile Include="MoveList.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="HashKey.cpp">
