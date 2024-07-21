@@ -219,15 +219,15 @@ bool Board::setToFEN(const std::string& fen) {
  *
  */
 uint64 Board::generatePositionKey() {
-    uint64 key = sideToMove == WHITE ? getSideKey() : 0ULL;
+    uint64 key = sideToMove == WHITE ? hashkey::getSideKey() : 0ULL;
     for (int sq = 0; sq < 64; ++sq) {
         if (pieces[sq] != INVALID) {
-            key ^= getPieceKey(pieces[sq], sq);
+            key ^= hashkey::getPieceKey(pieces[sq], sq);
         }
     }
-    key ^= getCastleKey(castlePerms);
+    key ^= hashkey::getCastleKey(castlePerms);
     if (enPassantSquare != INVALID) {
-        key |= getEnPassantKey(enPassantSquare);
+        key |= hashkey::getEnPassantKey(enPassantSquare);
     }
     return key;
 }

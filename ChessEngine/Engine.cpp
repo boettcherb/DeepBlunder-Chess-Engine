@@ -11,7 +11,8 @@
  * 
  */
 Engine::Engine() {
-    initHashKeys();
+    static_assert(sizeof(uint64) == 8);
+    hashkey::initHashKeys();
 }
 Engine::Engine(const std::string& starting_fen) :Engine() {
     setupBoard(starting_fen);
