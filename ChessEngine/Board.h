@@ -34,11 +34,11 @@
  * fiftyMoveCount:    An integer holding the number of half moves since the
  *                    last capture or pawn move. Used for the fifty move rule.
  * enPassantSquare:   An integer holding the square that the current side to
-                      move could attack by the en passant rule. NO_PIECE if
-                      en passant is not possible in the current position.
+ *                    move could attack by the en passant rule. NO_PIECE if
+ *                    en passant is not possible in the current position.
  * material:          Two integers holding the overall material for each side.
  *                    (Q=9, R=5, B=3, N=3, P=1). Updated incrementally as moves
-                      are made and unmade.
+ *                    are made and unmade.
  * history:           A vector of PrevMove structs that stores info about how
  *                    to un-make each move made to get to the current position.
  * positionKey:       A 64-bit integer that is used as a hash key into the
