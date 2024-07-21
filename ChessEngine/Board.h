@@ -76,5 +76,6 @@ public:
     bool setToFEN(const std::string& fen);
 
 private:
-    void generatePositionKey();
+    uint64 generatePositionKey();
+    bool validBoard();
 };

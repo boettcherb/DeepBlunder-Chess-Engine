@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "Defs.h"
 #include "HashKey.h"
 #include <string>
 #include <algorithm>
@@ -38,6 +39,7 @@ void Board::reset() {
     positionKey = 0;
     history.clear();
 }
+
 
 /*
  * 
@@ -202,7 +204,8 @@ bool Board::setToFEN(const std::string& fen) {
         colorBitboards[pieceColor[pieces[sq]]] |= 1ULL << sq;
         colorBitboards[pieceColor[BOTH_COLORS]] |= 1ULL << sq;
     }
-    generatePositionKey();
+    positionKey = generatePositionKey();
+    assert(validBoard());
     return true;
 }
 
@@ -215,17 +218,168 @@ bool Board::setToFEN(const std::string& fen) {
  * with the chessboard, which makes comparing two positions very efficient.
  *
  */
-void Board::generatePositionKey() {
-    if (sideToMove == WHITE) {
-        positionKey ^= getSideKey();
-    }
+uint64 Board::generatePositionKey() {
+    uint64 key = sideToMove == WHITE ? getSideKey() : 0ULL;
     for (int sq = 0; sq < 64; ++sq) {
         if (pieces[sq] != INVALID) {
-            positionKey ^= getPieceKey(pieces[sq], sq);
+            key ^= getPieceKey(pieces[sq], sq);
         }
     }
-    positionKey ^= getCastleKey(castlePerms);
+    key ^= getCastleKey(castlePerms);
     if (enPassantSquare != INVALID) {
-        positionKey |= getEnPassantKey(enPassantSquare);
+        key |= getEnPassantKey(enPassantSquare);
     }
+    return key;
+}
+
+
+/*
+ * 
+ * Return true if the board is a valid chessboard. Check to make sure that the
+ * board's member variables have reasonable values, that the bitboards match
+ * the pieces array, that the matieral counts match the pieces, etc. This
+ * method currently does not allow for any variant of chess that might have
+ * abnormal piece placements (such as Chess960) or abnormal amounts of pieces
+ * such as Horde chess).
+ * 
+ */
+bool Board::validBoard() {
+    if (sideToMove != WHITE && sideToMove != BLACK) {
+        std::cerr << "Side to move is not WHITE or BLACK" << std::endl;
+        return false;
+    }
+    if (ply < 0 || searchPly < 0) {
+        std::cerr << "Ply and searchPly must be positive" << std::endl;
+        return false;
+    }
+    if (fiftyMoveCount < 0 || fiftyMoveCount > 100) {
+        std::cerr << "Fiftymovecount should be between 0 and 100" << std::endl;
+        return false;
+    }
+    if (countBits(pieceBitboards[WHITE_KING]) != 1) {
+        std::cerr << "White must have exactly 1 king" << std::endl;
+        return false;
+    }
+    if (countBits(pieceBitboards[BLACK_KING]) != 1) {
+        std::cerr << "Black must have exactly 1 king" << std::endl;
+        return false;
+    }
+    int pieceCount[NUM_PIECE_TYPES] = { 0 };
+    int materialWhite = 0, materialBlack = 0;
+    for (int sq = 0; sq < 64; ++sq) {
+        int piece = INVALID, count = 0;
+        for (int pieceType = 0; pieceType < NUM_PIECE_TYPES; ++pieceType) {
+            if (pieceBitboards[pieceType] & (1ULL << sq)) {
+                ++count;
+                piece = pieceType;
+            }
+        }
+        if (count > 1 || piece != pieces[sq]) {
+            std::cerr << "Invalid pieces[] array" << std::endl;
+            return false;
+        }
+        if (piece != INVALID) {
+            ++pieceCount[piece];
+            if (pieceColor[piece] == WHITE) {
+                materialWhite += pieceColor[piece];
+            } else {
+                materialBlack += pieceColor[piece];
+            }
+        }
+    }
+    if (material[WHITE] != materialWhite || material[BLACK] != materialBlack) {
+        std::cerr << "Material values are incorrect" << std::endl;
+        return false;
+    }
+    if (pieceCount[WHITE_PAWN] > 8 || pieceCount[BLACK_PAWN] > 8) {
+        std::cerr << "Invalid pawn counts" << std::endl;
+        return false;
+    }
+    if (pieceCount[WHITE_KNIGHT] > 10 || pieceCount[BLACK_KNIGHT] > 10) {
+        std::cerr << "Invalid knight counts" << std::endl;
+        return false;
+    }
+    if (pieceCount[WHITE_BISHOP] > 10 || pieceCount[BLACK_BISHOP] > 10) {
+        std::cerr << "Invalid bishop counts" << std::endl;
+        return false;
+    }
+    if (pieceCount[WHITE_ROOK] > 10 || pieceCount[BLACK_ROOK] > 10) {
+        std::cerr << "Invalid rook counts" << std::endl;
+        return false;
+    }
+    if (pieceCount[WHITE_QUEEN] > 9 || pieceCount[BLACK_QUEEN] > 9) {
+        std::cerr << "Invalid queen counts" << std::endl;
+        return false;
+    }
+    if (pieceCount[WHITE_KING] != 1 || pieceCount[BLACK_KING] != 1) {
+        std::cerr << "Invalid king counts" << std::endl;
+        return false;
+    }
+    uint64 c_white = 0, c_black = 0;
+    for (int i = WHITE_PAWN; i <= WHITE_KING; ++i) {
+        c_white |= pieceBitboards[i];
+        c_black |= pieceBitboards[i + 6];
+    }
+    if (c_white != colorBitboards[WHITE] || c_black != colorBitboards[BLACK]
+        || colorBitboards[BOTH_COLORS] != (c_white | c_black)) {
+        std::cerr << "Invalid colorBitboards" << std::endl;
+        return false;
+    }
+    if (enPassantSquare != INVALID) {
+        if (enPassantSquare < 0 || enPassantSquare >= 64) {
+            std::cerr << "Invalid en passant square (1)" << std::endl;
+            return false;
+        }
+        if (sideToMove == WHITE) {
+            if ((1ULL << enPassantSquare) & 0xFFFF00FFFFFFFFFF ||
+                pieces[enPassantSquare - 8] != BLACK_PAWN) {
+                std::cerr << "Invalid en passant square (2)" << std::endl;
+                return false;
+            }
+        }
+        else {
+            if ((1ULL << enPassantSquare) & 0xFFFFFFFFFF00FFFF ||
+                pieces[enPassantSquare + 8] != WHITE_PAWN) {
+                std::cerr << "Invalid en passant square (3)" << std::endl;
+                return false;
+            }
+        }
+    }
+    if (castlePerms & CASTLE_WK) {
+        if (pieces[E1] != WHITE_KING || pieces[H1] != WHITE_ROOK) {
+            std::cerr << "Invalid castle permissions (1)" << std::endl;
+            return false;
+        }
+    }
+    if (castlePerms & CASTLE_WQ) {
+        if (pieces[E1] != WHITE_KING || pieces[A1] != WHITE_ROOK) {
+            std::cerr << "Invalid castle permissions (2)" << std::endl;
+            return false;
+        }
+    }
+    if (castlePerms & CASTLE_BK) {
+        if (pieces[E8] != BLACK_KING || pieces[H8] != BLACK_ROOK) {
+            std::cerr << "Invalid castle permissions (3)" << std::endl;
+            return false;
+        }
+    }
+    if (castlePerms & CASTLE_BQ) {
+        if (pieces[E8] != WHITE_KING || pieces[A8] != BLACK_ROOK) {
+            std::cerr << "Invalid castle permissions (4)" << std::endl;
+            return false;
+        }
+    }
+    if (castlePerms & 0xFFFFFFF0) {
+        std::cerr << "Invalid castle permissions (5)" << std::endl;
+    }
+    uint64 pawns = pieceBitboards[WHITE_PAWN] | pieceBitboards[BLACK_PAWN];
+    if (pawns & 0xFF000000000000FF) {
+        std::cerr << "Pawns are on the 1st or 8th rank" << std::endl;
+        return false;
+    }
+    if (positionKey != generatePositionKey()) {
+        std::cerr << "positionKey is incorrect" << std::endl;
+        return false;
+    }
+    return true;
 }
