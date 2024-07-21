@@ -1,7 +1,9 @@
 #include "Engine.h"
 #include "Board.h"
 #include "HashKey.h"
+#include "Attack.h"
 #include <string>
+
 
 /*
  * 
@@ -13,6 +15,8 @@
 Engine::Engine() {
     static_assert(sizeof(uint64) == 8);
     hashkey::initHashKeys();
+    attack::initializeBishopAttackTable();
+    attack::initializeRookAttackTable();
 }
 Engine::Engine(const std::string& starting_fen) :Engine() {
     setupBoard(starting_fen);

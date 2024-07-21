@@ -135,6 +135,7 @@
     <ClInclude Include="Defs.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="HashKey.h" />
+    <ClInclude Include="Attack.h" />
     <ClInclude Include="MoveList.h" />
   </ItemGroup>
   <ItemGroup>
@@ -142,6 +143,7 @@
     <ClCompile Include="Defs.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="HashKey.cpp" />
+    <ClCompile Include="Attack.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MoveList.cpp" />
   </ItemGroup>
