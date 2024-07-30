@@ -96,7 +96,6 @@ void Board::reset() {
  * 
  */
 void Board::addPiece(int square, int piece) {
-    //assert(boardIsValid());
     assert(square >= 0 && square < 64);
     assert(piece >= 0 && piece < NUM_PIECE_TYPES);
     assert(pieces[square] == INVALID);
@@ -117,7 +116,6 @@ void Board::addPiece(int square, int piece) {
  *
  */
 void Board::clearPiece(int square) {
-    //assert(boardIsValid());
     assert(square >= 0 && square < 64);
     assert(pieces[square] != INVALID);
     int piece = pieces[square];
@@ -139,7 +137,6 @@ void Board::clearPiece(int square) {
  *
  */
 void Board::movePiece(int from, int to) {
-    //assert(boardIsValid());
     assert(from >= 0 && from < 64);
     assert(to >= 0 && to < 64);
     assert(from != to);

@@ -109,46 +109,32 @@ bool MoveList::validMove(int move) const {
     int prom = (move >> 16) & 0xF;
 
     if (move & CAPTURE_FLAG) {
-        // assert(cap >= 0 && cap < NUM_PIECE_TYPES);
-        // assert(cap != WHITE_KING && cap != BLACK_KING);
         if (cap < 0 || cap >= NUM_PIECE_TYPES
             || cap == WHITE_KING || cap == BLACK_KING) {
             std::cout << "Invalid captured piece (1)" << std::endl;
             return false;
         }
-        // assert(!(move & EN_PASSANT_FLAG));
-        // assert(!(move & CASTLE_FLAG));
-        // assert(!(move & PAWN_START_FLAG));
         if (move & (EN_PASSANT_FLAG | CASTLE_FLAG | PAWN_START_FLAG)) {
             std::cout << "Invalid flags (1)" << std::endl;
             return false;
         }
     }
     else {
-        // assert(cap == 0xF);
         if (cap != 0xF) {
             std::cerr << "Invalid captured piece (2)" << std::endl;
             return false;
         }
     }
     if (move & PROMOTION_FLAG) {
-        // assert(prom >= 0 && prom < NUM_PIECE_TYPES);
-        // assert(prom != WHITE_KING && prom != BLACK_KING);
-        // assert(prom != WHITE_PAWN && prom != BLACK_PAWN);
         if (prom < 0 || prom >= NUM_PIECE_TYPES || prom == WHITE_KING
             || prom == WHITE_PAWN || prom == BLACK_KING || prom == BLACK_PAWN) {
             std::cerr << "Invalid promoted piece (1)" << std::endl;
             return false;
         }
-        // assert(!(move & EN_PASSANT_FLAG));
-        // assert(!(move & CASTLE_FLAG));
-        // assert(!(move & PAWN_START_FLAG));
         if (move & (EN_PASSANT_FLAG | CASTLE_FLAG | PAWN_START_FLAG)) {
             std::cerr << "Invalid flags (2)" << std::endl;
             return false;
         }
-        // assert((from < 16 && from >= 8 && to < 8)
-        //        || (from >= 48 && from < 56 && to >= 56));
         if (!((from < 16 && from >= 8 && to < 8) ||
               (from >= 48 && from < 56 && to >= 56))) {
             std::cerr << "Invalid from/to squares for promotion" << std::endl;
@@ -156,60 +142,42 @@ bool MoveList::validMove(int move) const {
         }
     }
     else {
-        // assert(prom == 0xF);
         if (prom != 0xF) {
             std::cout << "Invalid promoted piece (2)" << std::endl;
             return false;
         }
     }
     if (move & CASTLE_FLAG) {
-        // assert(!(move & CAPTURE_FLAG));
-        // assert(!(move & PROMOTION_FLAG));
-        // assert(!(move & PAWN_START_FLAG));
-        // assert(!(move & EN_PASSANT_FLAG));
         if (move & (CAPTURE_AND_PROMOTION_FLAG | PAWN_START_FLAG | EN_PASSANT_FLAG)) {
             std::cerr << "Invalid flags (3)" << std::endl;
             return false;
         }
-        // assert(cap == 0xF);
         if (cap != 0xF) {
             std::cerr << "Invalid captured piece (3)" << std::endl;
             return false;
         }
-        // assert(prom == 0xF);
         if (prom != 0xF) {
             std::cout << "Invalid promoted piece (3)" << std::endl;
             return false;
         }
-        // assert((from == E1 && (to == G1 || to == C1))
-        //     || (from == E8 && (to == G8 || to == C8)));
         if (!(from == E1 && (to == G1 || to == C1))
             && !(from == E8 && (to == G8 || to == C8))) {
             std::cerr << "Invalid from/to squares for castling" << std::endl;
         }
     }
     if (move & PAWN_START_FLAG) {
-        // assert(!(move & CAPTURE_FLAG));
-        // assert(!(move & PROMOTION_FLAG));
-        // assert(!(move & CASTLE_FLAG));
-        // assert(!(move & EN_PASSANT_FLAG));
         if (move & (CAPTURE_AND_PROMOTION_FLAG | CASTLE_FLAG | EN_PASSANT_FLAG)) {
             std::cerr << "Invalid flags (4)" << std::endl;
             return false;
         }
-        // assert(cap == 0xF);
         if (cap != 0xF) {
             std::cerr << "Invalid captured piece (4)" << std::endl;
             return false;
         }
-        // assert(prom == 0xF);
         if (prom != 0xF) {
             std::cout << "Invalid promoted piece (4)" << std::endl;
             return false;
         }
-        // assert(from & 0x00FF00000000FF00);
-        // assert(to & 0x000000FFFF000000);
-        // assert(std::abs(from - to) == 16);
         uint64 F = 1ULL << from;
         uint64 T = 1ULL << to;
         if (!((F & 0x00FF00000000FF00) && (T & 0x000000FFFF000000)
@@ -219,27 +187,18 @@ bool MoveList::validMove(int move) const {
         }
     }
     if (move & EN_PASSANT_FLAG) {
-        // assert(!(move & CAPTURE_FLAG));
-        // assert(!(move & PROMOTION_FLAG));
-        // assert(!(move & CASTLE_FLAG));
-        // assert(!(move & PAWN_START_FLAG));
         if (move & (CAPTURE_AND_PROMOTION_FLAG | PAWN_START_FLAG | CASTLE_FLAG)) {
             std::cerr << "Invalid flags (5)" << std::endl;
             return false;
         }
-        // assert(cap == 0xF);
         if (cap != 0xF) {
             std::cerr << "Invalid captured piece (5)" << std::endl;
             return false;
         }
-        // assert(prom == 0xF);
         if (prom != 0xF) {
             std::cout << "Invalid promoted piece (5)" << std::endl;
             return false;
         }
-        // assert(from & 0x000000FFFF000000);
-        // assert(to & 0x0000FF0000FF0000);
-        // assert(std::abs(from - to) == 7 || std::abs(from - to) == 9);
         uint64 F = 1ULL << from;
         uint64 T = 1ULL << to;
         if (!((F & 0x000000FFFF000000) && (T & 0x0000FF0000FF0000)
