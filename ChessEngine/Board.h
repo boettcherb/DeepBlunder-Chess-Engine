@@ -82,10 +82,15 @@ public:
     int getEnPassantSquare() const;
 
     void reset();
+    bool makeMove(int move);
+    void undoMove();
     bool squaresAttacked(uint64 squares, int side) const;
     bool setToFEN(const std::string& fen);
 
 private:
+    void addPiece(int square, int piece);
+    void clearPiece(int square);
+    void movePiece(int from, int to);
     uint64 generatePositionKey() const;
     bool boardIsValid() const;
 };

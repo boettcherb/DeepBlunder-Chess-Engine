@@ -8,6 +8,16 @@
 
 
 /*
+ * 
+ * PrevMove constructor. Initializes all member variables of the PrevMove
+ * struct to the given values.
+ * 
+ */
+Board::PrevMove::PrevMove(int m, int c, int f, int e, uint64 p) : move{ m },
+castlePerms{ c }, fiftyMoveCount{ f }, enPassantSquare{ e }, positionKey{ p } {}
+
+
+/*
  *
  * Board constructor. Initializes all board member variables to a default
  * value. If a FEN string is given, the board is set up according to that
@@ -34,7 +44,7 @@ int Board::operator[](int index) const {
     assert(boardIsValid());
     return pieces[index];
 }
-bool Board::whiteToMove() const {
+int Board::side() const {
     assert(boardIsValid());
     return sideToMove;
 }
@@ -76,6 +86,223 @@ void Board::reset() {
     material[0] = material[1] = 0;
     positionKey = 0;
     history.clear();
+}
+
+
+/*
+ * 
+ * Add the given piece to the given square. Update the board's member variables
+ * to reflect the change. There must not be a piece already on the square.
+ * 
+ */
+void Board::addPiece(int square, int piece) {
+    assert(boardIsValid());
+    assert(square >= 0 && square < 64);
+    assert(piece >= 0 && piece < NUM_PIECE_TYPES);
+    assert(pieces[square] == INVALID);
+    pieces[square] = piece;
+    uint64 mask = 1ULL << square;
+    pieceBitboards[piece] |= mask;
+    colorBitboards[pieceColor[piece]] |= mask;
+    colorBitboards[BOTH_COLORS] |= mask;
+    material[pieceColor[piece]] += pieceMaterial[piece];
+    positionKey ^= hashkey::getPieceKey(piece, square);
+}
+
+
+/*
+ *
+ * Remove the piece on the given square. Update the board's member variables to
+ * reflect the change. There must be a piece on the square.
+ *
+ */
+void Board::clearPiece(int square) {
+    assert(boardIsValid());
+    assert(square >= 0 && square < 64);
+    assert(pieces[square] != INVALID);
+    int piece = pieces[square];
+    pieces[square] = INVALID;
+    uint64 mask = ~(1ULL << square);
+    pieceBitboards[piece] &= mask;
+    colorBitboards[pieceColor[piece]] &= mask;
+    colorBitboards[BOTH_COLORS] &= mask;
+    material[pieceColor[piece]] -= pieceMaterial[piece];
+    positionKey ^= hashkey::getPieceKey(piece, square);
+}
+
+
+/*
+ *
+ * Move the piece from the square 'from' to the square 'to'. Update the board's
+ * member variables to reflect the change. There must be a piece on the 'from'
+ * square and the 'to' square must be empty.
+ *
+ */
+void Board::movePiece(int from, int to) {
+    assert(boardIsValid());
+    assert(from >= 0 && from < 64);
+    assert(to >= 0 && to < 64);
+    assert(from != to);
+    assert(pieces[from] != INVALID);
+    assert(pieces[to] == INVALID);
+    int piece = pieces[from];
+    pieces[to] = piece;
+    pieces[from] = INVALID;
+    uint64 setMask = 1ULL << to;
+    uint64 clearMask = ~(1ULL << from);
+    pieceBitboards[piece] |= setMask;
+    pieceBitboards[piece] &= clearMask;
+    colorBitboards[pieceColor[piece]] |= setMask;
+    colorBitboards[pieceColor[piece]] &= clearMask;
+    colorBitboards[BOTH_COLORS] |= setMask;
+    colorBitboards[BOTH_COLORS] &= clearMask;
+    positionKey ^= hashkey::getPieceKey(piece, from);
+    positionKey ^= hashkey::getPieceKey(piece, to);
+}
+
+
+/*
+ * This array is used to update the castlePermissions member of the board
+ * struct. Whenever a move is made, this operation:
+ * board->castlePermissions &= castlePerms[from] & castlePerms[to];
+ * is all that is needed to update the board's castle permissions. Note that
+ * most squares (except the starting positions of the kings and rooks) are
+ * 0xF, which causes the above operation to have no effect. This is because
+ * the castle permissions of a chess board do not change if the rooks/kings
+ * are not the pieces that are moving/being taken. Example: castlePerms[A1]
+ * is 0xD (1101). If the rook on A1 moves/is taken, board->castlePermissions
+ * will be updated from 1111 to 1101 with the above operation, which signifies
+ * that white can no longer castle queenside.
+ */
+static inline constexpr int castlePermissions[64] = {
+    0xD, 0xF, 0xF, 0xF, 0xC, 0xF, 0xF, 0xE,
+    0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF,
+    0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF,
+    0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF,
+    0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF,
+    0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF,
+    0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF, 0xF,
+    0x7, 0xF, 0xF, 0xF, 0x3, 0xF, 0xF, 0xB,
+};
+
+
+/*
+ *
+ * Make a move on the chessboard. Return true if the move was a legal move and
+ * it was made on the board. Return false if the move was not legal (left the
+ * king in check). The move is passed in as a 32-bit integer that contains all
+ * the necessary information about the move. First, store information about the
+ * current position in the board's history array so the move can de undone.
+ * Then, update the board's member variables to reflect the move. After the
+ * move is made, make sure that the king was not left in check by the move. If
+ * so, undo the move and return false. If the move was legal, return true.
+ *
+ */
+bool Board::makeMove(int move) {
+    assert(boardIsValid());
+    assert(ply == (int) history.size());
+    int from = move & 0x3F;
+    int to = (move >> 6) & 0x3F;
+    history.emplace_back(move, castlePerms, fiftyMoveCount,
+                         enPassantSquare, positionKey);
+    ++ply;
+    ++searchPly;
+    if (enPassantSquare != INVALID) {
+        positionKey ^= hashkey::getEnPassantKey(enPassantSquare);
+        enPassantSquare = INVALID;
+    }
+    if ((move & CAPTURE_FLAG) || pieces[from] == WHITE_PAWN
+        || pieces[from] == BLACK_PAWN) {
+        fiftyMoveCount = 0;
+    } else {
+        ++fiftyMoveCount;
+    }
+    positionKey ^= hashkey::getCastleKey(castlePerms);
+    castlePerms &= castlePermissions[from] & castlePermissions[to];
+    positionKey ^= hashkey::getCastleKey(castlePerms);
+    switch (move & MOVE_FLAGS) {
+        case CAPTURE_FLAG:
+            clearPiece(to);
+            break;
+        case CAPTURE_AND_PROMOTION_FLAG:
+            clearPiece(to);
+            [[fallthrough]];
+        case PROMOTION_FLAG:
+            clearPiece(from);
+            addPiece(from, (move >> 16) & 0xF);
+            break;
+        case CASTLE_FLAG:
+            switch (to) {
+                case G1: movePiece(H1, F1); break;
+                case C1: movePiece(A1, D1); break;
+                case G8: movePiece(H8, F8); break;
+                case C8: movePiece(A8, D8); break;
+                default: assert(false);
+            }
+            break;
+        case PAWN_START_FLAG:
+            enPassantSquare = (to + from) / 2;
+            positionKey ^= hashkey::getEnPassantKey(enPassantSquare);
+            break;
+        case EN_PASSANT_FLAG:
+            clearPiece(to + sideToMove * 16 - 8);
+    }
+    movePiece(from, to);
+    int king = sideToMove == WHITE ? WHITE_KING : BLACK_KING;
+    sideToMove = !sideToMove;
+    positionKey ^= hashkey::getSideKey();
+    assert(boardIsValid());
+    if (squaresAttacked(pieceBitboards[king], sideToMove)) {
+        undoMove();
+        return false;
+    }
+    return true;
+}
+
+
+/*
+ *
+ * Undo the last move that was made on the board. At least one move must have
+ * been made on the board before this function can be called. Information about
+ * previous board states is stored in the board's history array.
+ *
+ */
+void Board::undoMove() {
+    assert(boardIsValid());
+    assert(history.size() > 0);
+    assert(ply == (int) history.size());
+    sideToMove = !sideToMove;
+    int move = history.back().move;
+    int from = move & 0x3F;
+    int to = (move >> 6) & 0x3F;
+    movePiece(to, from);
+    switch (move & MOVE_FLAGS) {
+        case CAPTURE_FLAG:
+            addPiece(to, (move >> 12) & 0xF);
+            break;
+        case CAPTURE_AND_PROMOTION_FLAG:
+            addPiece(to, (move >> 12) & 0xF);
+            [[fallthrough]];
+        case PROMOTION_FLAG:
+            clearPiece(from);
+            addPiece(from, pieceType[sideToMove][PAWN]);
+            break;
+        case CASTLE_FLAG:
+            switch (to) {
+                case G1: movePiece(F1, H1); break;
+                case C1: movePiece(D1, A1); break;
+                case G8: movePiece(F8, H8); break;
+                case C8: movePiece(D8, A8); break;
+            }
+            break;
+        case EN_PASSANT_FLAG:
+            addPiece(to + sideToMove * 16 - 8, pieceType[!sideToMove][PAWN]);
+    }
+    castlePerms = history.back().castlePerms;
+    fiftyMoveCount = history.back().fiftyMoveCount;
+    enPassantSquare = history.back().enPassantSquare;
+    positionKey = history.back().positionKey;
+    assert(boardIsValid());
 }
 
 
@@ -361,10 +588,10 @@ bool Board::boardIsValid() const {
     int materialWhite = 0, materialBlack = 0;
     for (int sq = 0; sq < 64; ++sq) {
         int piece = INVALID, count = 0;
-        for (int pieceType = 0; pieceType < NUM_PIECE_TYPES; ++pieceType) {
-            if (pieceBitboards[pieceType] & (1ULL << sq)) {
+        for (int type = 0; type < NUM_PIECE_TYPES; ++type) {
+            if (pieceBitboards[type] & (1ULL << sq)) {
                 ++count;
-                piece = pieceType;
+                piece = type;
             }
         }
         if (count > 1 || piece != pieces[sq]) {
