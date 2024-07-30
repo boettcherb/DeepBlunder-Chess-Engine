@@ -24,6 +24,42 @@ Board::Board(const std::string& starting_fen) : Board() {
 
 /*
  *
+ * Getter methods to retrieve the piece on the given square, the side to move,
+ * the bitboard of a given piece, the bitboard of a given color, the castle
+ * permissions, and the en passant square.
+ *
+ */
+int Board::operator[](int index) const {
+    assert(index >= 0 && index < 64);
+    assert(boardIsValid());
+    return pieces[index];
+}
+bool Board::whiteToMove() const {
+    assert(boardIsValid());
+    return sideToMove;
+}
+uint64 Board::getPieceBitboard(int piece) const {
+    assert(piece >= 0 && piece < NUM_PIECE_TYPES);
+    assert(boardIsValid());
+    return pieceBitboards[piece];
+}
+uint64 Board::getColorBitboard(int color) const {
+    assert(color == WHITE || color == BLACK || color == BOTH_COLORS);
+    assert(boardIsValid());
+    return colorBitboards[color];
+}
+int Board::getCastlePerms() const {
+    assert(boardIsValid());
+    return castlePerms;
+}
+int Board::getEnPassantSquare() const {
+    assert(boardIsValid());
+    return enPassantSquare;
+}
+
+
+/*
+ *
  * Reset the board's member variables to their default values. sideToMove is
  * set to BOTH_COLORS so that an error occurs if it is not set to either WHITE
  * or BLACK during initialization. castlePerms, enPassantSquare, and the pieces
@@ -33,7 +69,7 @@ Board::Board(const std::string& starting_fen) : Board() {
 void Board::reset() {
     std::fill_n(pieceBitboards, NUM_PIECE_TYPES, 0);
     std::fill_n(colorBitboards, 3, 0);
-    std::fill_n(pieces, 64, static_cast<unsigned char>(INVALID));
+    std::fill_n(pieces, 64, INVALID);
     sideToMove = Color::BOTH_COLORS;
     castlePerms = enPassantSquare = INVALID;
     ply = searchPly = fiftyMoveCount = 0;
@@ -55,8 +91,8 @@ void Board::reset() {
  * if a position is checkmate vs stalemate.
  * 
  */
-bool Board::isAttackedBy(uint64 squares, int side) {
-    assert(validBoard());
+bool Board::squaresAttacked(uint64 squares, int side) const {
+    assert(boardIsValid());
     assert(side == WHITE || side == BLACK);
     uint64 attacks = 0ULL, knights, bishops, rooks, queens;
     if (side == WHITE) {
@@ -261,7 +297,7 @@ bool Board::setToFEN(const std::string& fen) {
         colorBitboards[pieceColor[BOTH_COLORS]] |= 1ULL << sq;
     }
     positionKey = generatePositionKey();
-    assert(validBoard());
+    assert(boardIsValid());
     return true;
 }
 
@@ -274,7 +310,8 @@ bool Board::setToFEN(const std::string& fen) {
  * with the chessboard, which makes comparing two positions very efficient.
  *
  */
-uint64 Board::generatePositionKey() {
+uint64 Board::generatePositionKey() const {
+    assert(boardIsValid());
     uint64 key = sideToMove == WHITE ? hashkey::getSideKey() : 0ULL;
     for (int sq = 0; sq < 64; ++sq) {
         if (pieces[sq] != INVALID) {
@@ -299,7 +336,7 @@ uint64 Board::generatePositionKey() {
  * such as Horde chess).
  * 
  */
-bool Board::validBoard() {
+bool Board::boardIsValid() const {
     if (sideToMove != WHITE && sideToMove != BLACK) {
         std::cerr << "Side to move is not WHITE or BLACK" << std::endl;
         return false;

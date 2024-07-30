@@ -59,7 +59,7 @@ class Board {
 
     uint64 pieceBitboards[NUM_PIECE_TYPES];
     uint64 colorBitboards[3];
-    unsigned char pieces[64];
+    int pieces[64];
     int sideToMove;
     int ply, searchPly;
     int castlePerms;
@@ -73,11 +73,18 @@ public:
     Board();
     Board(const std::string& starting_fen);
 
+    int operator[](int square) const;
+    bool whiteToMove() const;
+    uint64 getPieceBitboard(int piece) const;
+    uint64 getColorBitboard(int color) const;
+    int getCastlePerms() const;
+    int getEnPassantSquare() const;
+
     void reset();
-    bool isAttackedBy(uint64 squares, int side);
+    bool squaresAttacked(uint64 squares, int side) const;
     bool setToFEN(const std::string& fen);
 
 private:
-    uint64 generatePositionKey();
-    bool validBoard();
+    uint64 generatePositionKey() const;
+    bool boardIsValid() const;
 };
