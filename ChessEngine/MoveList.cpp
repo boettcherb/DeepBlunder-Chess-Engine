@@ -52,6 +52,16 @@ MoveList::MoveList(const Board& board) {
 
 
 /*
+ *
+ * Return the number of moves in the MoveList.
+ *
+ */
+int MoveList::numMoves() const {
+    return (int) moves.size();
+}
+
+
+/*
  * 
  * Given an index i, return the i'th move in the movelist. The given index must
  * be valid (0 <= i < the number of moves in the movelist).

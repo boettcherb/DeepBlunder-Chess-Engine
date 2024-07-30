@@ -10,6 +10,7 @@ class MoveList {
 public:
     MoveList(const Board& board);
     int operator[](int index) const;
+    int numMoves() const;
     void generateMoves(const Board& board);
 
 private:
