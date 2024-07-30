@@ -9,7 +9,6 @@ class Engine {
 
 public:
     Engine();
-    Engine(const std::string& starting_fen);
 
-    void setupBoard(const std::string& fen);
+    bool setupBoard(const std::string& fen);
 };

@@ -7,9 +7,8 @@
 
 /*
  * 
- * Engine constructor. First, call initHashKeys to generate the hash keys.
- * Then, If a starting position was given (as a FEN string), setup the board
- * according to that position.
+ * Engine constructor. Initialize the engine by initializing the hashkeys and
+ * the bishop and rook attack tables.
  * 
  */
 Engine::Engine() {
@@ -18,16 +17,14 @@ Engine::Engine() {
     attack::initializeBishopAttackTable();
     attack::initializeRookAttackTable();
 }
-Engine::Engine(const std::string& starting_fen) :Engine() {
-    setupBoard(starting_fen);
-}
 
 
 /*
  * 
- * Setup the board according to the given position by calling Board::setToFEN()
+ * Setup the board according to the given position by calling setToFEN(). If
+ * the position cannot be set up, return false.
  * 
  */
-void Engine::setupBoard(const std::string& fen) {
-    board.setToFEN(fen);
+bool Engine::setupBoard(const std::string& fen) {
+    return board.setToFEN(fen);
 }
