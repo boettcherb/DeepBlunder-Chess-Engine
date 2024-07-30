@@ -64,7 +64,7 @@ inline constexpr int pieceMaterial[NUM_PIECE_TYPES] = {
     1, 3, 3, 5, 9, 0, 1, 3, 3, 5, 9, 0
 };
 
-inline constexpr int pieces[Color::BOTH_COLORS][NUM_PIECE_TYPES] = {
+inline constexpr int pieceType[Color::BOTH_COLORS][NUM_PIECE_TYPES] = {
     {
         WHITE_PAWN, WHITE_KNIGHT, WHITE_BISHOP,
         WHITE_ROOK, WHITE_QUEEN, WHITE_KING
