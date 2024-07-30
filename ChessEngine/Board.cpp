@@ -497,7 +497,7 @@ bool Board::setToFEN(const std::string& fen) {
                 << "FEN: \"" << fen << '\"' << std::endl;
             return false;
         }
-        enPassantSquare = (tokens[3][0] - 'a') * 8 + (tokens[3][1] - '1');
+        enPassantSquare = (tokens[3][0] - 'a') + (tokens[3][1] - '1') * 8;
     }
 
 
