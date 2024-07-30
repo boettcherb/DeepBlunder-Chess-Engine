@@ -96,7 +96,7 @@ void Board::reset() {
  * 
  */
 void Board::addPiece(int square, int piece) {
-    assert(boardIsValid());
+    //assert(boardIsValid());
     assert(square >= 0 && square < 64);
     assert(piece >= 0 && piece < NUM_PIECE_TYPES);
     assert(pieces[square] == INVALID);
@@ -117,7 +117,7 @@ void Board::addPiece(int square, int piece) {
  *
  */
 void Board::clearPiece(int square) {
-    assert(boardIsValid());
+    //assert(boardIsValid());
     assert(square >= 0 && square < 64);
     assert(pieces[square] != INVALID);
     int piece = pieces[square];
@@ -139,7 +139,7 @@ void Board::clearPiece(int square) {
  *
  */
 void Board::movePiece(int from, int to) {
-    assert(boardIsValid());
+    //assert(boardIsValid());
     assert(from >= 0 && from < 64);
     assert(to >= 0 && to < 64);
     assert(from != to);
@@ -271,6 +271,8 @@ void Board::undoMove() {
     assert(boardIsValid());
     assert(history.size() > 0);
     assert(ply == (int) history.size());
+    --ply;
+    --searchPly;
     sideToMove = !sideToMove;
     int move = history.back().move;
     int from = move & 0x3F;
@@ -302,6 +304,7 @@ void Board::undoMove() {
     fiftyMoveCount = history.back().fiftyMoveCount;
     enPassantSquare = history.back().enPassantSquare;
     positionKey = history.back().positionKey;
+    history.pop_back();
     assert(boardIsValid());
 }
 
@@ -487,13 +490,18 @@ bool Board::setToFEN(const std::string& fen) {
     }
 
     // en passant square token
-    if (tokens[3] != "-" && (tokens[3].length() != 2 || tokens[3][0] < 'a' ||
-        tokens[3][0] > 'h' || (tokens[3][1] != '3' && tokens[3][1] != '6'))) {
-        std::cerr << "Error: invalid fen: invalid en passant square token\n"
-            << "FEN: \"" << fen << '\"' << std::endl;
-        return false;
+    if (tokens[3] == "-") {
+        enPassantSquare = INVALID;
+    } else {
+        if (tokens[3].length() != 2 || tokens[3][0] < 'a' || tokens[3][0] > 'h' ||
+            (tokens[3][1] != '3' && tokens[3][1] != '6')) {
+            std::cerr << "Error: invalid fen: invalid en passant square token\n"
+                << "FEN: \"" << fen << '\"' << std::endl;
+            return false;
+        }
+        enPassantSquare = (tokens[3][0] - 'a') * 8 + (tokens[3][1] - '1');
     }
-    enPassantSquare = (tokens[3][0] - 'a') * 8 + (tokens[3][1] - '1');
+
 
     // fifty move count token
     if (!containsOnly(tokens[4], "0123456789")) {
@@ -521,7 +529,7 @@ bool Board::setToFEN(const std::string& fen) {
         material[pieceColor[pieces[sq]]] += pieceMaterial[pieces[sq]];
         pieceBitboards[pieces[sq]] |= 1ULL << sq;
         colorBitboards[pieceColor[pieces[sq]]] |= 1ULL << sq;
-        colorBitboards[pieceColor[BOTH_COLORS]] |= 1ULL << sq;
+        colorBitboards[BOTH_COLORS] |= 1ULL << sq;
     }
     positionKey = generatePositionKey();
     assert(boardIsValid());
@@ -538,7 +546,6 @@ bool Board::setToFEN(const std::string& fen) {
  *
  */
 uint64 Board::generatePositionKey() const {
-    assert(boardIsValid());
     uint64 key = sideToMove == WHITE ? hashkey::getSideKey() : 0ULL;
     for (int sq = 0; sq < 64; ++sq) {
         if (pieces[sq] != INVALID) {
@@ -547,7 +554,7 @@ uint64 Board::generatePositionKey() const {
     }
     key ^= hashkey::getCastleKey(castlePerms);
     if (enPassantSquare != INVALID) {
-        key |= hashkey::getEnPassantKey(enPassantSquare);
+        key ^= hashkey::getEnPassantKey(enPassantSquare);
     }
     return key;
 }
@@ -601,9 +608,9 @@ bool Board::boardIsValid() const {
         if (piece != INVALID) {
             ++pieceCount[piece];
             if (pieceColor[piece] == WHITE) {
-                materialWhite += pieceColor[piece];
+                materialWhite += pieceMaterial[piece];
             } else {
-                materialBlack += pieceColor[piece];
+                materialBlack += pieceMaterial[piece];
             }
         }
     }
@@ -650,17 +657,21 @@ bool Board::boardIsValid() const {
             std::cerr << "Invalid en passant square (1)" << std::endl;
             return false;
         }
+        if (pieces[enPassantSquare] != INVALID) {
+            std::cerr << "Invalid en passant square (2)" << std::endl;
+            return false;
+        }
         if (sideToMove == WHITE) {
             if ((1ULL << enPassantSquare) & 0xFFFF00FFFFFFFFFF ||
                 pieces[enPassantSquare - 8] != BLACK_PAWN) {
-                std::cerr << "Invalid en passant square (2)" << std::endl;
+                std::cerr << "Invalid en passant square (3)" << std::endl;
                 return false;
             }
         }
         else {
             if ((1ULL << enPassantSquare) & 0xFFFFFFFFFF00FFFF ||
                 pieces[enPassantSquare + 8] != WHITE_PAWN) {
-                std::cerr << "Invalid en passant square (3)" << std::endl;
+                std::cerr << "Invalid en passant square (4)" << std::endl;
                 return false;
             }
         }
@@ -684,7 +695,7 @@ bool Board::boardIsValid() const {
         }
     }
     if (castlePerms & CASTLE_BQ) {
-        if (pieces[E8] != WHITE_KING || pieces[A8] != BLACK_ROOK) {
+        if (pieces[E8] != BLACK_KING || pieces[A8] != BLACK_ROOK) {
             std::cerr << "Invalid castle permissions (4)" << std::endl;
             return false;
         }

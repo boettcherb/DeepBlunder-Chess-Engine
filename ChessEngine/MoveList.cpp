@@ -68,7 +68,7 @@ int MoveList::numMoves() const {
  * 
  */
 int MoveList::operator[](int index) const {
-    assert(index > 0 && index < (int) moves.size());
+    assert(index >= 0 && index < (int) moves.size());
     return moves[index];
 }
 
@@ -210,7 +210,9 @@ bool MoveList::validMove(int move) const {
         // assert(from & 0x00FF00000000FF00);
         // assert(to & 0x000000FFFF000000);
         // assert(std::abs(from - to) == 16);
-        if (!((from & 0x00FF00000000FF00) && (to & 0x000000FFFF000000)
+        uint64 F = 1ULL << from;
+        uint64 T = 1ULL << to;
+        if (!((F & 0x00FF00000000FF00) && (T & 0x000000FFFF000000)
               && (std::abs(from - to) == 16))) {
             std::cerr << "Invalid from/to squares for pawn start" << std::endl;
             return false;
@@ -238,7 +240,9 @@ bool MoveList::validMove(int move) const {
         // assert(from & 0x000000FFFF000000);
         // assert(to & 0x0000FF0000FF0000);
         // assert(std::abs(from - to) == 7 || std::abs(from - to) == 9);
-        if (!((from & 0x000000FFFF000000) && (to & 0x0000FF0000FF0000)
+        uint64 F = 1ULL << from;
+        uint64 T = 1ULL << to;
+        if (!((F & 0x000000FFFF000000) && (T & 0x0000FF0000FF0000)
               && (std::abs(from - to) == 7 || std::abs(from - to) == 9))) {
             std::cerr << "Invalid from/to squares for en passant" << std::endl;
             return false;
@@ -566,7 +570,8 @@ void MoveList::generateMoves(const Board& board) {
         generatePieceMoves(board, queen, attacks & ~samePieces);
         queens &= queens - 1;
     }
-    generatePieceMoves(board, getLSB(king), attack::getKingAttacks(king));
+    uint64 kingAttacks = attack::getKingAttacks(king) & ~samePieces;
+    generatePieceMoves(board, getLSB(king), kingAttacks);
     auto compareMoves = [](const int& m1, const int& m2) -> bool {
         return (m1 >> 25) > (m2 >> 25);
     };

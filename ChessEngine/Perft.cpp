@@ -362,12 +362,12 @@ void Engine::runPerftTests() const {
         uint64 endTime = currentTime();
 
         int passed = 1;
-        for (int d = 1; depth <= maxDepth; ++depth) {
-            printf("depth: %d | test result: %13llu | ", d, result[depth]);
-            if (result[depth] == PERFT_SOLUTIONS[test][depth]) {
+        for (int d = 1; d <= maxDepth; ++d) {
+            printf("depth: %d | test result: %13llu | ", d, result[d]);
+            if (result[d] == PERFT_SOLUTIONS[test][d]) {
                 puts("passed");
             } else {
-                printf("----FAILED---- answer: %lld\n", PERFT_SOLUTIONS[test][depth]);
+                printf("----FAILED---- answer: %lld\n", PERFT_SOLUTIONS[test][d]);
                 passed = 0;
             }
         }
