@@ -2,6 +2,7 @@
 #include "Defs.h"
 #include "Board.h"
 #include "Attack.h"
+#include <iostream>
 #include <algorithm>
 
 

@@ -2,6 +2,7 @@
 #include "Defs.h"
 #include "HashKey.h"
 #include "Attack.h"
+#include <iostream>
 #include <string>
 #include <algorithm>
 #include <vector>
