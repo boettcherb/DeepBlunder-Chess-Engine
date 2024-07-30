@@ -55,6 +55,7 @@ class Board {
         int fiftyMoveCount;
         int enPassantSquare;
         uint64 positionKey;
+        PrevMove(int m, int c, int f, int e, uint64 p);
     };
 
     uint64 pieceBitboards[NUM_PIECE_TYPES];
@@ -74,7 +75,7 @@ public:
     Board(const std::string& starting_fen);
 
     int operator[](int square) const;
-    bool whiteToMove() const;
+    int side() const;
     uint64 getPieceBitboard(int piece) const;
     uint64 getColorBitboard(int color) const;
     int getCastlePerms() const;

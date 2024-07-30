@@ -335,11 +335,10 @@ void MoveList::addPawnMove(const Board& board, int move, int score) {
     int to = (move >> 6) & 0x3F;
     if ((1ULL << to) & 0xFF000000000000FF) {
         move = (move & 0xFFF0FFFF) | PROMOTION_FLAG;
-        int side = board.whiteToMove() ? WHITE : BLACK;
-        int knight = pieceType[side][KNIGHT];
-        int bishop = pieceType[side][BISHOP];
-        int rook = pieceType[side][ROOK];
-        int queen = pieceType[side][QUEEN];
+        int knight = pieceType[board.side()][KNIGHT];
+        int bishop = pieceType[board.side()][BISHOP];
+        int rook = pieceType[board.side()][ROOK];
+        int queen = pieceType[board.side()][QUEEN];
         addMove(move | (knight << 16), score + promotionScore[KNIGHT]);
         addMove(move | (bishop << 16), score + promotionScore[BISHOP]);
         addMove(move | (rook << 16), score + promotionScore[ROOK]);
@@ -514,7 +513,7 @@ void MoveList::generateMoves(const Board& board) {
     moves.reserve(40);
     uint64 samePieces, allPieces = board.getColorBitboard(BOTH_COLORS);
     uint64 knights, bishops, rooks, queens, king;
-    if (board.whiteToMove()) {
+    if (board.side() == WHITE) {
         knights = board.getPieceBitboard(WHITE_KNIGHT);
         bishops = board.getPieceBitboard(WHITE_BISHOP);
         rooks = board.getPieceBitboard(WHITE_ROOK);
