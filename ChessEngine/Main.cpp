@@ -2,5 +2,5 @@
 
 int main() {
     Engine chessEngine = Engine();
-
+    chessEngine.runPerftTests();
 }

@@ -11,4 +11,5 @@ public:
     Engine();
 
     bool setupBoard(const std::string& fen);
+    void runPerftTests() const;
 };
