@@ -139,6 +139,7 @@
     <ClInclude Include="HashKey.h" />
     <ClInclude Include="Attack.h" />
     <ClInclude Include="MoveList.h" />
+    <ClInclude Include="Table.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
@@ -149,6 +150,7 @@
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MoveList.cpp" />
     <ClCompile Include="Perft.cpp" />
+    <ClCompile Include="Table.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
