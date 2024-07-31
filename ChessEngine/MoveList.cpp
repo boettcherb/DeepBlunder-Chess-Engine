@@ -542,6 +542,21 @@ void MoveList::generateMoves(const Board& b) {
 
 /*
  *
+ * Return true if two moves are the same. When comparing moves, we do not take
+ * into account the move score. This is because the same move can have a
+ * different score in different positions (or even the same position at
+ * different depths) because the move score is updated based on how well a move
+ * does in the Alpha-Beta algorithm.
+ *
+ */
+static bool sameMove(int m1, int m2) {
+    int mask = 0x01FFFFFF;
+    return (m1 & mask) == (m2 & mask);
+}
+
+
+/*
+ *
  * Check to see if the given move is legal on the current board. If the move is
  * possible in the current position and it does not leave the king in check,
  * then return true. Otherwise return false.
@@ -549,7 +564,7 @@ void MoveList::generateMoves(const Board& b) {
  */
 bool MoveList::moveExists(int move) {
     for (int m : moves) {
-        if (m == move) {
+        if (sameMove(m, move)) {
             if (board.makeMove(m)) {
                 board.undoMove();
                 return true;
