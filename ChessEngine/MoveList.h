@@ -6,21 +6,23 @@
 class MoveList {
 
     std::vector<int> moves;
+    Board board;
 
 public:
-    MoveList(const Board& board);
+    MoveList(const Board& b);
     int operator[](int index) const;
     int numMoves() const;
-    void generateMoves(const Board& board);
+    void generateMoves(const Board& b);
+    bool moveExists(int move);
 
 private:
     int getMove(int from, int to, int cap, int prom, int flags) const;
     bool validMove(int move) const;
     void addMove(int move, int score);
-    void addPawnMove(const Board& board, int move, int score);
-    void generatePieceMoves(const Board& board, int sq, uint64 attacks);
-    void generateWhiteCastleMoves(const Board& board);
-    void generateBlackCastleMoves(const Board& board);
-    void generateWhitePawnMoves(const Board& board);
-    void generateBlackPawnMoves(const Board& board);
+    void addPawnMove(int move, int score);
+    void generatePieceMoves(int sq, uint64 attacks);
+    void generateWhiteCastleMoves();
+    void generateBlackCastleMoves();
+    void generateWhitePawnMoves();
+    void generateBlackPawnMoves();
 };

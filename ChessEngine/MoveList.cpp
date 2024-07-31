@@ -277,7 +277,7 @@ void MoveList::addMove(int move, int score) {
  * move. Otherwise, generate a normal move.
  *
  */
-void MoveList::generatePieceMoves(const Board& board, int sq, uint64 attacks) {
+void MoveList::generatePieceMoves(int sq, uint64 attacks) {
     assert(sq >= 0 && sq < 64);
     assert(board[sq] != INVALID);
     while (attacks) {
@@ -303,7 +303,7 @@ void MoveList::generatePieceMoves(const Board& board, int sq, uint64 attacks) {
  * pawn move is not a pawn promotion, then just add the move without changes.
  *
  */
-void MoveList::addPawnMove(const Board& board, int move, int score) {
+void MoveList::addPawnMove(int move, int score) {
     assert(validMove(move));
     assert(score > 0 && score < 0x3F);
     int to = (move >> 6) & 0x3F;
@@ -332,7 +332,7 @@ void MoveList::addPawnMove(const Board& board, int move, int score) {
  * forward on the first turn), and pawn promotion.
  *
  */
-void MoveList::generateWhitePawnMoves(const Board& board) {
+void MoveList::generateWhitePawnMoves() {
     uint64 allPieces = board.getColorBitboard(BOTH_COLORS);
     uint64 pawns = board.getPieceBitboard(WHITE_PAWN);
     uint64 pawnMoves = (pawns << 8) & ~allPieces;
@@ -340,7 +340,7 @@ void MoveList::generateWhitePawnMoves(const Board& board) {
     while (pawnMoves) {
         int to = getLSB(pawnMoves);
         int move = getMove(to - 8, to, INVALID, INVALID, 0);
-        addPawnMove(board, move, moveScore[WHITE_PAWN]);
+        addPawnMove(move, moveScore[WHITE_PAWN]);
         pawnMoves &= pawnMoves - 1;
     }
     uint64 enemyPieces = board.getColorBitboard(BLACK);
@@ -349,13 +349,13 @@ void MoveList::generateWhitePawnMoves(const Board& board) {
     while (attacksLeft) {
         int to = getLSB(attacksLeft);
         int move = getMove(to - 7, to, board[to], INVALID, CAPTURE_FLAG);
-        addPawnMove(board, move, captureScore[WHITE_PAWN][board[to]]);
+        addPawnMove(move, captureScore[WHITE_PAWN][board[to]]);
         attacksLeft &= attacksLeft - 1;
     }
     while (attacksRight) {
         int to = getLSB(attacksRight);
         int move = getMove(to - 9, to, board[to], INVALID, CAPTURE_FLAG);
-        addPawnMove(board, move, captureScore[WHITE_PAWN][board[to]]);
+        addPawnMove(move, captureScore[WHITE_PAWN][board[to]]);
         attacksRight &= attacksRight - 1;
     }
     while (pawnStarts) {
@@ -376,7 +376,7 @@ void MoveList::generateWhitePawnMoves(const Board& board) {
         }
     }
 }
-void MoveList::generateBlackPawnMoves(const Board& board) {
+void MoveList::generateBlackPawnMoves() {
     uint64 allPieces = board.getColorBitboard(BOTH_COLORS);
     uint64 pawns = board.getPieceBitboard(BLACK_PAWN);
     uint64 pawnMoves = (pawns >> 8) & ~allPieces;
@@ -384,7 +384,7 @@ void MoveList::generateBlackPawnMoves(const Board& board) {
     while (pawnMoves) {
         int to = getLSB(pawnMoves);
         int move = getMove(to + 8, to, INVALID, INVALID, 0);
-        addPawnMove(board, move, moveScore[BLACK_PAWN]);
+        addPawnMove(move, moveScore[BLACK_PAWN]);
         pawnMoves &= pawnMoves - 1;
     }
     uint64 enemyPieces = board.getColorBitboard(WHITE);
@@ -393,13 +393,13 @@ void MoveList::generateBlackPawnMoves(const Board& board) {
     while (attacksLeft) {
         int to = getLSB(attacksLeft);
         int move = getMove(to + 7, to, board[to], INVALID, CAPTURE_FLAG);
-        addPawnMove(board, move, captureScore[BLACK_PAWN][board[to]]);
+        addPawnMove(move, captureScore[BLACK_PAWN][board[to]]);
         attacksLeft &= attacksLeft - 1;
     }
     while (attacksRight) {
         int to = getLSB(attacksRight);
         int move = getMove(to + 9, to, board[to], INVALID, CAPTURE_FLAG);
-        addPawnMove(board, move, captureScore[BLACK_PAWN][board[to]]);
+        addPawnMove(move, captureScore[BLACK_PAWN][board[to]]);
         attacksRight &= attacksRight - 1;
     }
     while (pawnStarts) {
@@ -431,7 +431,7 @@ void MoveList::generateBlackPawnMoves(const Board& board) {
  * check.
  * 
  */
-void MoveList::generateWhiteCastleMoves(const Board& board) {
+void MoveList::generateWhiteCastleMoves() {
     int castlePerms = board.getCastlePerms();
     uint64 allPieces = board.getColorBitboard(BOTH_COLORS);
 
@@ -448,7 +448,7 @@ void MoveList::generateWhiteCastleMoves(const Board& board) {
         }
     }
 }
-void MoveList::generateBlackCastleMoves(const Board& board) {
+void MoveList::generateBlackCastleMoves() {
     int castlePerms = board.getCastlePerms();
     uint64 allPieces = board.getColorBitboard(BOTH_COLORS);
     if (castlePerms & CASTLE_BK) {
@@ -482,9 +482,10 @@ void MoveList::generateBlackCastleMoves(const Board& board) {
  * Then, the moves are sorted in descending order by their move score.
  *
  */
-void MoveList::generateMoves(const Board& board) {
+void MoveList::generateMoves(const Board& b) {
     moves.clear();
     moves.reserve(40);
+    board = b;
     uint64 samePieces, allPieces = board.getColorBitboard(BOTH_COLORS);
     uint64 knights, bishops, rooks, queens, king;
     if (board.side() == WHITE) {
@@ -494,8 +495,8 @@ void MoveList::generateMoves(const Board& board) {
         queens = board.getPieceBitboard(WHITE_QUEEN);
         king = board.getPieceBitboard(WHITE_KING);
         samePieces = board.getColorBitboard(WHITE);
-        generateWhitePawnMoves(board);
-        generateWhiteCastleMoves(board);
+        generateWhitePawnMoves();
+        generateWhiteCastleMoves();
     } else {
         knights = board.getPieceBitboard(BLACK_KNIGHT);
         bishops = board.getPieceBitboard(BLACK_BISHOP);
@@ -503,37 +504,58 @@ void MoveList::generateMoves(const Board& board) {
         queens = board.getPieceBitboard(BLACK_QUEEN);
         king = board.getPieceBitboard(BLACK_KING);
         samePieces = board.getColorBitboard(BLACK);
-        generateBlackPawnMoves(board);
-        generateBlackCastleMoves(board);
+        generateBlackPawnMoves();
+        generateBlackCastleMoves();
     }
     while (knights) {
         int knight = getLSB(knights);
         uint64 attacks = attack::getKnightAttacks(knight);
-        generatePieceMoves(board, knight, attacks & ~samePieces);
+        generatePieceMoves(knight, attacks & ~samePieces);
         knights &= knights - 1;
     }
     while (bishops) {
         int bishop = getLSB(bishops);
         uint64 attacks = attack::getBishopAttacks(bishop, allPieces);
-        generatePieceMoves(board, bishop, attacks & ~samePieces);
+        generatePieceMoves(bishop, attacks & ~samePieces);
         bishops &= bishops - 1;
     }
     while (rooks) {
         int rook = getLSB(rooks);
         uint64 attacks = attack::getRookAttacks(rook, allPieces);
-        generatePieceMoves(board, rook, attacks & ~samePieces);
+        generatePieceMoves(rook, attacks & ~samePieces);
         rooks &= rooks - 1;
     }
     while (queens) {
         int queen = getLSB(queens);
         uint64 attacks = attack::getQueenAttacks(queen, allPieces);
-        generatePieceMoves(board, queen, attacks & ~samePieces);
+        generatePieceMoves(queen, attacks & ~samePieces);
         queens &= queens - 1;
     }
     uint64 kingAttacks = attack::getKingAttacks(king) & ~samePieces;
-    generatePieceMoves(board, getLSB(king), kingAttacks);
+    generatePieceMoves(getLSB(king), kingAttacks);
     auto compareMoves = [](const int& m1, const int& m2) -> bool {
         return (m1 >> 25) > (m2 >> 25);
     };
     std::sort(moves.begin(), moves.end(), compareMoves);
+}
+
+
+/*
+ *
+ * Check to see if the given move is legal on the current board. If the move is
+ * possible in the current position and it does not leave the king in check,
+ * then return true. Otherwise return false.
+ *
+ */
+bool MoveList::moveExists(int move) {
+    for (int m : moves) {
+        if (m == move) {
+            if (board.makeMove(m)) {
+                board.undoMove();
+                return true;
+            }
+            return false;
+        }
+    }
+    return false;
 }
