@@ -27,8 +27,6 @@
  *                    whose turn it is in the current position.
  * ply:               An integer holding the number of half moves made to get
  *                    to the current board position.
- * searchPly:         An integer holding the number of half moves made in the
- *                    current search by the AlphaBeta algorithm.
  * castlePerms:       A combination of bit flags denoting which castling moves
  *                    are legal. Ex: If (castlePerms & CASTLE_WQ != 0), then
  *                    white can castle queenside in the current position.
@@ -62,7 +60,7 @@ class Board {
     uint64 colorBitboards[3];
     int pieces[64];
     int sideToMove;
-    int ply, searchPly;
+    int ply;
     int castlePerms;
     int fiftyMoveCount;
     int enPassantSquare;

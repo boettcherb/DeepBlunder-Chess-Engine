@@ -87,7 +87,7 @@ void Board::reset() {
     std::fill_n(pieces, 64, INVALID);
     sideToMove = Color::BOTH_COLORS;
     castlePerms = enPassantSquare = INVALID;
-    ply = searchPly = fiftyMoveCount = 0;
+    ply = fiftyMoveCount = 0;
     material[0] = material[1] = 0;
     positionKey = 0;
     history.clear();
@@ -208,7 +208,6 @@ bool Board::makeMove(int move) {
     history.emplace_back(move, castlePerms, fiftyMoveCount,
                          enPassantSquare, positionKey);
     ++ply;
-    ++searchPly;
     if (enPassantSquare != INVALID) {
         positionKey ^= hashkey::getEnPassantKey(enPassantSquare);
         enPassantSquare = INVALID;
@@ -274,7 +273,6 @@ void Board::undoMove() {
     assert(history.size() > 0);
     assert(ply == (int) history.size());
     --ply;
-    --searchPly;
     sideToMove = !sideToMove;
     int move = history.back().move;
     int from = move & 0x3F;
@@ -602,8 +600,8 @@ bool Board::boardIsValid() const {
         std::cerr << "Side to move is not WHITE or BLACK" << std::endl;
         return false;
     }
-    if (ply < 0 || searchPly < 0) {
-        std::cerr << "Ply and searchPly must be positive" << std::endl;
+    if (ply < 0) {
+        std::cerr << "Ply must be positive" << std::endl;
         return false;
     }
     if (fiftyMoveCount < 0 || fiftyMoveCount > 100) {
