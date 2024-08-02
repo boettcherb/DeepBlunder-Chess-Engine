@@ -87,6 +87,9 @@ public:
     bool squaresAttacked(uint64 squares, int side) const;
     bool setToFEN(const std::string& fen);
 
+    // Evaluate.cpp
+    int evaluatePosition() const;
+
 private:
     void addPiece(int square, int piece);
     void clearPiece(int square);
