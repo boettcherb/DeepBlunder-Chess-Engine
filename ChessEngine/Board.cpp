@@ -363,6 +363,31 @@ bool Board::squaresAttacked(uint64 squares, int side) const {
 
 /*
  * 
+ * Return true if this is the third time this position has occurred on the
+ * board. We can compare the current position key with position keys stored in
+ * the history array. We do not have to check all positions in the history
+ * array. We only have to check positions with the same side to move (every
+ * other position) up until the fifty move count was reset to 0 (because it is
+ * not possible to have the same position after a capture or a pawn move). If
+ * there are at least 2 positions in the history array equal to the current
+ * position, then there is a 3-fold repetition on the board.
+ * 
+ */
+bool Board::is3foldRepetition() const {
+    assert(boardIsValid());
+    int start = (int) history.size() - 2;
+    int stop = start - (fiftyMoveCount - 2);
+    int numRepetitions = 0;
+    for (int i = start; i >= stop; i -= 2) {
+        assert(i >= 0 && i < (int) history.size());
+        numRepetitions += positionKey == history[i].positionKey;
+    }
+    return numRepetitions >= 2;
+}
+
+
+/*
+ * 
  * Helper function that splits the given string 'str' into a vector of strings
  * based on the given delimneter 'delim'. This is used to parse FEN strings and
  * the piece layout portion of FEN strings.

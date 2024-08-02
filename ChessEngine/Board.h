@@ -85,6 +85,7 @@ public:
     bool makeMove(int move);
     void undoMove();
     bool squaresAttacked(uint64 squares, int side) const;
+    bool is3foldRepetition() const;
     bool setToFEN(const std::string& fen);
 
     // Evaluate.cpp
