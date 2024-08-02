@@ -143,6 +143,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
+    <ClCompile Include="BoardString.cpp" />
     <ClCompile Include="Defs.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Evaluate.cpp" />

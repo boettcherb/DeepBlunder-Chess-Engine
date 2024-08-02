@@ -86,10 +86,13 @@ public:
     void undoMove();
     bool squaresAttacked(uint64 squares, int side) const;
     bool is3foldRepetition() const;
-    bool setToFEN(const std::string& fen);
 
     // Evaluate.cpp
     int evaluatePosition() const;
+
+    // BoardString.cpp
+    std::string getMoveString(int move) const;
+    bool setToFEN(const std::string& fen);
 
 private:
     void addPiece(int square, int piece);
