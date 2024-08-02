@@ -37,7 +37,8 @@ Board::Board(const std::string& starting_fen) : Board() {
  *
  * Getter methods to retrieve the piece on the given square, the side to move,
  * the bitboard of a given piece, the bitboard of a given color, the castle
- * permissions, and the en passant square.
+ * permissions, the en passant square, the fifty move rule count, and the
+ * current position key.
  *
  */
 int Board::operator[](int index) const {
@@ -70,6 +71,10 @@ int Board::getEnPassantSquare() const {
 int Board::getFiftyMoveCount() const {
     assert(boardIsValid());
     return fiftyMoveCount;
+}
+uint64 Board::getPositionKey() const {
+    assert(boardIsValid());
+    return positionKey;
 }
 
 

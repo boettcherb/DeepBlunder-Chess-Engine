@@ -79,6 +79,7 @@ public:
     int getCastlePerms() const;
     int getEnPassantSquare() const;
     int getFiftyMoveCount() const;
+    uint64 getPositionKey() const;
 
     void reset();
     bool makeMove(int move);
