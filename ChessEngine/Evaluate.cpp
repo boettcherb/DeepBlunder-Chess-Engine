@@ -151,6 +151,7 @@ static const int pieceValue[NUM_PIECE_TYPES][64] = {
  * 
  */
 int Board::evaluatePosition() const {
+    assert(boardIsValid());
     int eval = material[WHITE] - material[BLACK];
     uint64 whitePieces = colorBitboards[WHITE];
     while (whitePieces) {
