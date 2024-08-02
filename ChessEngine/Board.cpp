@@ -67,6 +67,10 @@ int Board::getEnPassantSquare() const {
     assert(boardIsValid());
     return enPassantSquare;
 }
+int Board::getFiftyMoveCount() const {
+    assert(boardIsValid());
+    return fiftyMoveCount;
+}
 
 
 /*

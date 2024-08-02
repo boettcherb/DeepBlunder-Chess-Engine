@@ -80,6 +80,7 @@ public:
     uint64 getColorBitboard(int color) const;
     int getCastlePerms() const;
     int getEnPassantSquare() const;
+    int getFiftyMoveCount() const;
 
     void reset();
     bool makeMove(int move);
