@@ -82,6 +82,7 @@ void Engine::setupSearch(SearchInfo& info) {
     info.nodes = 0;
     info.stop = info.quit = false;
     table.initialize();
+    info.fh = info.fhf = 0.0f;
 }
 
 
@@ -117,6 +118,8 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
                 if (alpha < eval) {
                     alpha = eval;
                     if (beta <= alpha) {
+                        info.fhf += legalMoves == 1;
+                        ++info.fh;
                         return beta;
                     }
                     bestMove = move;
@@ -146,6 +149,8 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
             if (beta > eval) {
                 beta = eval;
                 if (beta <= alpha) {
+                    info.fhf += legalMoves == 1;
+                    ++info.fh;
                     return alpha;
                 }
                 bestMove = move;
@@ -199,5 +204,6 @@ void Engine::searchPosition(SearchInfo& info) {
         } std::cout << '\n';
         std::cout << "\tTime taken: " << (endTime - info.startTime) << " ms\n";
         std::cout << "\tNodes searched: " << info.nodes << "\n";
+        printf("\tordering: %.2f\n", info.fh == 0.0f ? 0.0f : info.fhf / info.fh);
     }
 }

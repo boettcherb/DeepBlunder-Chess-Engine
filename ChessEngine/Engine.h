@@ -26,6 +26,7 @@ struct SearchInfo {
     bool inifinite;
     bool quit;
     bool stop;
+    float fh, fhf;
 };
 
 class Engine {
