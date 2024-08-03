@@ -9,10 +9,11 @@ class MoveList {
     Board board;
 
 public:
-    MoveList(const Board& b);
+    MoveList(const Board& b, bool onlyCaptures = false);
     int operator[](int index) const;
     int numMoves() const;
     void generateMoves(const Board& b);
+    void generateCaptureMoves(const Board& b);
     bool moveExists(int move);
 
 private:
@@ -25,4 +26,6 @@ private:
     void generateBlackCastleMoves();
     void generateWhitePawnMoves();
     void generateBlackPawnMoves();
+    void generateWhitePawnCaptureMoves();
+    void generateBlackPawnCaptureMoves();
 };

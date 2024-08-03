@@ -103,10 +103,9 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
     MoveList moveList(board);
     // TODO: retrieve the bestMove for the current position from the transposition
     // table and make it first in the movelist ordering
-    int numMoves = moveList.numMoves();
-    int legalMoves = 0;
-    int bestEval = 0;
-    int bestMove = INVALID;
+    int numMoves = moveList.numMoves(), legalMoves = 0;
+    int bestEval = 0, bestMove = INVALID;
+    int oldAlpha = alpha, oldBeta = beta;
     if (max) {
         assert(board.side() == WHITE);
         bestEval = -INF;
@@ -120,6 +119,12 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
                 }
                 ++legalMoves;
                 board.undoMove();
+                if (alpha < eval) {
+                    alpha = eval;
+                    if (beta <= alpha) {
+                        return beta;
+                    }
+                }
             }
         }
         if (legalMoves == 0) {
@@ -128,6 +133,10 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
                 return -(MATE + depth);
             }
             return 0;
+        }
+        if (alpha != oldAlpha) {
+            assert(bestMove != INVALID);
+            table.store(board.getPositionKey(), bestMove);
         }
     }
     else {
@@ -143,6 +152,12 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
                 }
                 ++legalMoves;
                 board.undoMove();
+                if (beta > eval) {
+                    beta = eval;
+                    if (beta <= alpha) {
+                        return alpha;
+                    }
+                }
             }
         }
         if (legalMoves == 0) {
@@ -152,9 +167,11 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
             }
             return 0;
         }
+        if (beta != oldBeta) {
+            assert(bestMove != INVALID);
+            table.store(board.getPositionKey(), bestMove);
+        }
     }
-    assert(bestMove != INVALID);
-    table.store(board.getPositionKey(), bestMove);
     return bestEval;
 }
 
@@ -179,7 +196,7 @@ void Engine::searchPosition(SearchInfo& info) {
     setupSearch(info);
     std::cout << "Searching position...\n";
     for (int depth = 1; depth <= info.maxDepth; ++depth) {
-        int eval = alphaBeta(info, depth, 0, 0, board.side() == WHITE);
+        int eval = alphaBeta(info, depth, -INF, INF, board.side() == WHITE);
         uint64 endTime = currentTime();
         std::vector<std::string> pvLine = getPVLine(depth);
 
