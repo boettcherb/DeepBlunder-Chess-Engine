@@ -104,19 +104,14 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
     // TODO: retrieve the bestMove for the current position from the transposition
     // table and make it first in the movelist ordering
     int numMoves = moveList.numMoves(), legalMoves = 0;
-    int bestEval = 0, bestMove = INVALID;
+    int bestMove = INVALID;
     int oldAlpha = alpha, oldBeta = beta;
     if (max) {
         assert(board.side() == WHITE);
-        bestEval = -INF;
         for (int i = 0; i < numMoves; ++i) {
             int move = moveList[i];
             if (board.makeMove(move)) {
                 int eval = alphaBeta(info, depth - 1, alpha, beta, false);
-                if (eval > bestEval) {
-                    bestEval = eval;
-                    bestMove = move;
-                }
                 ++legalMoves;
                 board.undoMove();
                 if (alpha < eval) {
@@ -124,6 +119,7 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
                     if (beta <= alpha) {
                         return beta;
                     }
+                    bestMove = move;
                 }
             }
         }
@@ -138,41 +134,36 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
             assert(bestMove != INVALID);
             table.store(board.getPositionKey(), bestMove);
         }
+        return alpha;
     }
-    else {
-        assert(board.side() == BLACK);
-        bestEval = INF;
-        for (int i = 0; i < numMoves; ++i) {
-            int move = moveList[i];
-            if (board.makeMove(move)) {
-                int eval = alphaBeta(info, depth - 1, alpha, beta, true);
-                if (eval < bestEval) {
-                    bestEval = eval;
-                    bestMove = move;
+    assert(board.side() == BLACK);
+    for (int i = 0; i < numMoves; ++i) {
+        int move = moveList[i];
+        if (board.makeMove(move)) {
+            int eval = alphaBeta(info, depth - 1, alpha, beta, true);
+            ++legalMoves;
+            board.undoMove();
+            if (beta > eval) {
+                beta = eval;
+                if (beta <= alpha) {
+                    return alpha;
                 }
-                ++legalMoves;
-                board.undoMove();
-                if (beta > eval) {
-                    beta = eval;
-                    if (beta <= alpha) {
-                        return alpha;
-                    }
-                }
+                bestMove = move;
             }
         }
-        if (legalMoves == 0) {
-            uint64 king = board.getPieceBitboard(BLACK_KING);
-            if (board.squaresAttacked(king, WHITE)) {
-                return MATE + depth;
-            }
-            return 0;
-        }
-        if (beta != oldBeta) {
-            assert(bestMove != INVALID);
-            table.store(board.getPositionKey(), bestMove);
-        }
     }
-    return bestEval;
+    if (legalMoves == 0) {
+        uint64 king = board.getPieceBitboard(BLACK_KING);
+        if (board.squaresAttacked(king, WHITE)) {
+            return MATE + depth;
+        }
+        return 0;
+    }
+    if (beta != oldBeta) {
+        assert(bestMove != INVALID);
+        table.store(board.getPositionKey(), bestMove);
+    }
+    return beta;
 }
 
 
