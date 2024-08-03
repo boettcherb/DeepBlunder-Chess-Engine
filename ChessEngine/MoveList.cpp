@@ -44,11 +44,16 @@
  * pseudo-legal move that is available in the current position. A pseudo-legal
  * move is a move that would normally be legal but on the current board would
  * leave the king in check. These moves are removed later as moves are made and
- * unmade.
+ * unmade. If we want to only generate capture moves (for Quiescence Search),
+ * then 'onlyCaptures' is set to true.
  * 
  */
-MoveList::MoveList(const Board& board) {
-    generateMoves(board);
+MoveList::MoveList(const Board& board, bool onlyCaptures) {
+    if (onlyCaptures) {
+        generateCaptureMoves(board);
+    } else {
+        generateMoves(board);
+    }
 }
 
 
@@ -532,6 +537,138 @@ void MoveList::generateMoves(const Board& b) {
         queens &= queens - 1;
     }
     uint64 kingAttacks = attack::getKingAttacks(king) & ~samePieces;
+    generatePieceMoves(getLSB(king), kingAttacks);
+    auto compareMoves = [](const int& m1, const int& m2) -> bool {
+        return (m1 >> 25) > (m2 >> 25);
+    };
+    std::sort(moves.begin(), moves.end(), compareMoves);
+}
+
+
+
+/*
+ *
+ * Functions similar to generateWhitePawnMoves() and generateBlackPawnMoves()
+ * except now we are only generating capture moves (not normal pawn moves or
+ * pawn starts. These functions are used for Quiescence Search.
+ *
+ */
+void MoveList::generateWhitePawnCaptureMoves() {
+    uint64 pawns = board.getPieceBitboard(WHITE_PAWN);
+    uint64 enemyPieces = board.getColorBitboard(BLACK);
+    uint64 attacksLeft = attack::getWhitePawnAttacksLeft(pawns) & enemyPieces;
+    uint64 attacksRight = attack::getWhitePawnAttacksRight(pawns) & enemyPieces;
+    while (attacksLeft) {
+        int to = getLSB(attacksLeft);
+        int move = getMove(to - 7, to, board[to], INVALID, CAPTURE_FLAG);
+        addPawnMove(move, captureScore[WHITE_PAWN][board[to]]);
+        attacksLeft &= attacksLeft - 1;
+    }
+    while (attacksRight) {
+        int to = getLSB(attacksRight);
+        int move = getMove(to - 9, to, board[to], INVALID, CAPTURE_FLAG);
+        addPawnMove(move, captureScore[WHITE_PAWN][board[to]]);
+        attacksRight &= attacksRight - 1;
+    }
+    int ep = board.getEnPassantSquare();
+    if (ep != INVALID) {
+        if (ep != 47 && board[ep - 7] == WHITE_PAWN) {
+            int move = getMove(ep - 7, ep, INVALID, INVALID, EN_PASSANT_FLAG);
+            addMove(move, enPassantScore);
+        }
+        if (ep != 40 && board[ep - 9] == WHITE_PAWN) {
+            int move = getMove(ep - 9, ep, INVALID, INVALID, EN_PASSANT_FLAG);
+            addMove(move, enPassantScore);
+        }
+    }
+}
+void MoveList::generateBlackPawnCaptureMoves() {
+    uint64 pawns = board.getPieceBitboard(BLACK_PAWN);
+    uint64 enemyPieces = board.getColorBitboard(WHITE);
+    uint64 attacksLeft = attack::getBlackPawnAttacksLeft(pawns) & enemyPieces;
+    uint64 attacksRight = attack::getBlackPawnAttacksRight(pawns) & enemyPieces;
+    while (attacksLeft) {
+        int to = getLSB(attacksLeft);
+        int move = getMove(to + 7, to, board[to], INVALID, CAPTURE_FLAG);
+        addPawnMove(move, captureScore[BLACK_PAWN][board[to]]);
+        attacksLeft &= attacksLeft - 1;
+    }
+    while (attacksRight) {
+        int to = getLSB(attacksRight);
+        int move = getMove(to + 9, to, board[to], INVALID, CAPTURE_FLAG);
+        addPawnMove(move, captureScore[BLACK_PAWN][board[to]]);
+        attacksRight &= attacksRight - 1;
+    }
+    int ep = board.getEnPassantSquare();
+    if (ep != INVALID) {
+        if (ep != 16 && board[ep + 7] == BLACK_PAWN) {
+            int move = getMove(ep + 7, ep, INVALID, INVALID, EN_PASSANT_FLAG);
+            addMove(move, enPassantScore);
+        }
+        if (ep != 23 && board[ep + 9] == BLACK_PAWN) {
+            int move = getMove(ep + 9, ep, INVALID, INVALID, EN_PASSANT_FLAG);
+            addMove(move, enPassantScore);
+        }
+    }
+}
+
+
+/*
+ *
+ * Generate only capture moves. This function is similar to generateMoves()
+ * except we are generating pawn captures instead of all pawn moves, we are
+ * not generating castle moves, and for each piece type we limiting the attacks
+ * to capture moves with (attacks & enemyPieces).
+ *
+ */
+void MoveList::generateCaptureMoves(const Board& b) {
+    moves.clear();
+    moves.reserve(40);
+    board = b;
+    uint64 enemyPieces, allPieces = board.getColorBitboard(BOTH_COLORS);
+    uint64 knights, bishops, rooks, queens, king;
+    if (board.side() == WHITE) {
+        knights = board.getPieceBitboard(WHITE_KNIGHT);
+        bishops = board.getPieceBitboard(WHITE_BISHOP);
+        rooks = board.getPieceBitboard(WHITE_ROOK);
+        queens = board.getPieceBitboard(WHITE_QUEEN);
+        king = board.getPieceBitboard(WHITE_KING);
+        enemyPieces = board.getColorBitboard(BLACK);
+        generateWhitePawnCaptureMoves();
+    } else {
+        knights = board.getPieceBitboard(BLACK_KNIGHT);
+        bishops = board.getPieceBitboard(BLACK_BISHOP);
+        rooks = board.getPieceBitboard(BLACK_ROOK);
+        queens = board.getPieceBitboard(BLACK_QUEEN);
+        king = board.getPieceBitboard(BLACK_KING);
+        enemyPieces = board.getColorBitboard(WHITE);
+        generateBlackPawnCaptureMoves();
+    }
+    while (knights) {
+        int knight = getLSB(knights);
+        uint64 attacks = attack::getKnightAttacks(knight);
+        generatePieceMoves(knight, attacks & enemyPieces);
+        knights &= knights - 1;
+    }
+    while (bishops) {
+        int bishop = getLSB(bishops);
+        uint64 attacks = attack::getBishopAttacks(bishop, allPieces);
+        generatePieceMoves(bishop, attacks & enemyPieces);
+        bishops &= bishops - 1;
+    }
+    while (rooks) {
+        int rook = getLSB(rooks);
+        uint64 attacks = attack::getRookAttacks(rook, allPieces);
+        generatePieceMoves(rook, attacks & enemyPieces);
+        rooks &= rooks - 1;
+    }
+    while (queens) {
+        int queen = getLSB(queens);
+        uint64 attacks = attack::getQueenAttacks(queen, allPieces);
+        generatePieceMoves(queen, attacks & enemyPieces);
+        queens &= queens - 1;
+    }
+    uint64 kingAttacks = attack::getKingAttacks(king) & enemyPieces;
     generatePieceMoves(getLSB(king), kingAttacks);
     auto compareMoves = [](const int& m1, const int& m2) -> bool {
         return (m1 >> 25) > (m2 >> 25);
