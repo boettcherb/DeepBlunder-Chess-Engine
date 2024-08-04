@@ -77,12 +77,13 @@ std::vector<std::string> Engine::getPVLine(int depth) {
  * search, such as the variables in 'info' and the transposition table.
  * 
  */
-void Engine::setupSearch(SearchInfo& info) {
+void Engine::setupSearch() {
     info.startTime = currentTime();
     info.nodes = 0;
     info.stop = info.quit = false;
-    table.initialize();
     info.fh = info.fhf = 0.0f;
+    info.maxDepth = 4;
+    table.initialize();
 }
 
 
@@ -98,7 +99,7 @@ void Engine::setupSearch(SearchInfo& info) {
  * checkmate or stalemate since not all moves are being generated.
  * 
  */
-int Engine::quiescence(SearchInfo& info, int alpha, int beta, bool max) {
+int Engine::quiescence(int alpha, int beta, bool max) {
     ++info.nodes;
     if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
         return 0;
@@ -121,7 +122,7 @@ int Engine::quiescence(SearchInfo& info, int alpha, int beta, bool max) {
         for (int i = 0; i < numMoves; ++i) {
             assert((moveList[i] & CAPTURE_FLAG) || (moveList[i] & EN_PASSANT_FLAG));
             if (board.makeMove(moveList[i])) {
-                eval = quiescence(info, alpha, beta, false);
+                eval = quiescence(alpha, beta, false);
                 ++legalMoves;
                 board.undoMove();
                 if (eval > alpha) {
@@ -157,7 +158,7 @@ int Engine::quiescence(SearchInfo& info, int alpha, int beta, bool max) {
     for (int i = 0; i < numMoves; ++i) {
         assert((moveList[i] & CAPTURE_FLAG) || (moveList[i] & EN_PASSANT_FLAG));
         if (board.makeMove(moveList[i])) {
-            eval = quiescence(info, alpha, beta, true);
+            eval = quiescence(alpha, beta, true);
             ++legalMoves;
             board.undoMove();
             if (eval < beta) {
@@ -198,9 +199,9 @@ int Engine::quiescence(SearchInfo& info, int alpha, int beta, bool max) {
  * white's move) and false if it is the minimizing player's (black's) move.
  * 
  */
-int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max) {
+int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
     if (depth <= 0) {
-        return quiescence(info, alpha, beta, max);
+        return quiescence(alpha, beta, max);
     }
     ++info.nodes;
     if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
@@ -216,7 +217,7 @@ int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max
         assert(board.side() == WHITE);
         for (int i = 0; i < numMoves; ++i) {
             if (board.makeMove(moveList[i])) {
-                int eval = alphaBeta(info, alpha, beta, depth - 1, false);
+                int eval = alphaBeta(alpha, beta, depth - 1, false);
                 ++legalMoves;
                 board.undoMove();
                 if (eval > alpha) {
@@ -246,7 +247,7 @@ int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max
     assert(board.side() == BLACK);
     for (int i = 0; i < numMoves; ++i) {
         if (board.makeMove(moveList[i])) {
-            int eval = alphaBeta(info, alpha, beta, depth - 1, true);
+            int eval = alphaBeta(alpha, beta, depth - 1, true);
             ++legalMoves;
             board.undoMove();
             if (eval < beta) {
@@ -287,15 +288,12 @@ int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max
  * ordering is critical because more nodes can be pruned from the search tree
  * if the best moves are considered first.
  * 
- * The SearchInfo struct contains information about the search and flags that
- * can be set by the caller to tell the search to stop
- * 
  */
-void Engine::searchPosition(SearchInfo& info) {
-    setupSearch(info);
+void Engine::searchPosition() {
+    setupSearch();
     std::cout << "Searching position...\n";
     for (int depth = 1; depth <= info.maxDepth; ++depth) {
-        int eval = alphaBeta(info, -INF, INF, depth, board.side() == WHITE);
+        int eval = alphaBeta(-INF, INF, depth, board.side() == WHITE);
         uint64 endTime = currentTime();
         std::vector<std::string> pvLine = getPVLine(depth);
 

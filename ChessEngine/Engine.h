@@ -15,37 +15,39 @@
  * TODO: explain all of these variables
  * 
  */
-struct SearchInfo {
-    uint64 startTime;
-    uint64 stopTime;
-    uint64 nodes;
-    int maxDepth;
-    int depthSet;
-    int timeSet;
-    int movesToGo;
-    bool inifinite;
-    bool quit;
-    bool stop;
-    float fh, fhf;
-};
 
 class Engine {
 
+    struct SearchInfo {
+        uint64 startTime;
+        uint64 stopTime;
+        uint64 nodes;
+        int maxDepth;
+        int depthSet;  // true if we've set a depth limit for the search
+        int timeSet;   // true if we've set a time limit for the search
+        int movesToGo;
+        bool inifinite;
+        bool quit;
+        bool stop;
+        float fh, fhf;
+    };
+
     Board board;
     TranspositionTable table;
+    SearchInfo info;
 
 public:
     Engine();
 
     bool setupBoard(const std::string& fen);
-    void searchPosition(SearchInfo& info);
+    void searchPosition();
 
     // Perft.cpp
     void runPerftTests() const;
 
 private:
-    void setupSearch(SearchInfo& info);
-    int alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max);
-    int quiescence(SearchInfo& info, int alpha, int beta, bool max);
+    void setupSearch();
+    int alphaBeta(int alpha, int beta, int depth, bool max);
+    int quiescence(int alpha, int beta, bool max);
     std::vector<std::string> getPVLine(int depth);
 };
