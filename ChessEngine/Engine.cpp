@@ -87,17 +87,122 @@ void Engine::setupSearch(SearchInfo& info) {
 
 
 /*
+ * 
+ * Quiescence Search. Search only capture moves in order to find a 'quiet'
+ * position. This function is used to eliminate the Horizon Effect. Say white
+ * captures a pawn with a queen on the final depth of the Alpha-Beta search.
+ * White would evaluate the position as being up a pawn. However, that pawn may
+ * have been defended, so on the next move white would have lost a queen.
+ * Quiesence search is very similar to Alpha-Beta search except we do not have a
+ * max depth and we only consider capture moves. We also do not check for 
+ * checkmate or stalemate since not all moves are being generated.
+ * 
+ */
+int Engine::quiescence(SearchInfo& info, int alpha, int beta, bool max) {
+    ++info.nodes;
+    if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
+        return 0;
+    }
+    int eval = board.evaluatePosition();
+    if (max) {
+        assert(board.side() == WHITE);
+        if (eval > alpha) {
+            alpha = eval;
+            if (beta <= alpha) {
+                return beta;
+            }
+        }
+        MoveList moveList(board, true);
+        // TODO: retrieve the bestMove for the current position from the transposition
+        // table and make it first in the movelist ordering
+        int numMoves = moveList.numMoves(), legalMoves = 0;
+        int bestMove = INVALID;
+        int oldAlpha = alpha;
+        for (int i = 0; i < numMoves; ++i) {
+            assert((moveList[i] & CAPTURE_FLAG) || (moveList[i] & EN_PASSANT_FLAG));
+            if (board.makeMove(moveList[i])) {
+                eval = quiescence(info, alpha, beta, false);
+                ++legalMoves;
+                board.undoMove();
+                if (eval > alpha) {
+                    alpha = eval;
+                    if (beta <= alpha) {
+                        info.fhf += legalMoves == 1;
+                        ++info.fh;
+                        return beta;
+                    }
+                    bestMove = moveList[i];
+                }
+            }
+        }
+        if (alpha != oldAlpha) {
+            assert(bestMove != INVALID);
+            table.store(board.getPositionKey(), bestMove);
+        }
+        return alpha;
+    }
+    assert(board.side() == BLACK);
+    if (eval < beta) {
+        beta = eval;
+        if (beta <= alpha) {
+            return alpha;
+        }
+    }
+    MoveList moveList(board, true);
+    // TODO: retrieve the bestMove for the current position from the transposition
+    // table and make it first in the movelist ordering
+    int numMoves = moveList.numMoves(), legalMoves = 0;
+    int bestMove = INVALID;
+    int oldBeta = beta;
+    for (int i = 0; i < numMoves; ++i) {
+        assert((moveList[i] & CAPTURE_FLAG) || (moveList[i] & EN_PASSANT_FLAG));
+        if (board.makeMove(moveList[i])) {
+            eval = quiescence(info, alpha, beta, true);
+            ++legalMoves;
+            board.undoMove();
+            if (eval < beta) {
+                beta = eval;
+                if (beta <= alpha) {
+                    info.fhf += legalMoves == 1;
+                    ++info.fh;
+                    return alpha;
+                }
+                bestMove = moveList[i];
+            }
+        }
+    }
+    if (beta != oldBeta) {
+        assert(bestMove != INVALID);
+        table.store(board.getPositionKey(), bestMove);
+    }
+    return beta;
+}
+
+
+/*
  *
  * The Alpha-Beta search algorithm. Recursively search to depth 'depth' for the
  * best move in the current position. Return the evaluation of the current
  * position based on the best sequence of moves for the current side to move.
  * 
+ * Alpha is the best possible score for white in the starting position, and
+ * beta is the best possible score for black in the starting position. If it is
+ * white's move and we find a position with an evaluation > alpha, we update
+ * alpha. Similarly, if it is black's move and the evaluation is < beta, we
+ * update beta. However, if alpha becomes >= beta, then we've encountered a
+ * position that is 'too good' for white. Black has a chance to go down a
+ * different branch with a lower evaluation, and so black will never go down
+ * this branch, which means it can be pruned.
+ * 
+ * The bool 'max' is true if it is currently the maximizing player's move (ie.
+ * white's move) and false if it is the minimizing player's (black's) move.
+ * 
  */
 int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max) {
-    ++info.nodes;
     if (depth <= 0) {
-        return board.evaluatePosition();
+        return quiescence(info, alpha, beta, max);
     }
+    ++info.nodes;
     if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
         return 0;
     }
@@ -110,19 +215,18 @@ int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max
     if (max) {
         assert(board.side() == WHITE);
         for (int i = 0; i < numMoves; ++i) {
-            int move = moveList[i];
-            if (board.makeMove(move)) {
+            if (board.makeMove(moveList[i])) {
                 int eval = alphaBeta(info, alpha, beta, depth - 1, false);
                 ++legalMoves;
                 board.undoMove();
-                if (alpha < eval) {
+                if (eval > alpha) {
                     alpha = eval;
                     if (beta <= alpha) {
                         info.fhf += legalMoves == 1;
                         ++info.fh;
                         return beta;
                     }
-                    bestMove = move;
+                    bestMove = moveList[i];
                 }
             }
         }
@@ -141,19 +245,18 @@ int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max
     }
     assert(board.side() == BLACK);
     for (int i = 0; i < numMoves; ++i) {
-        int move = moveList[i];
-        if (board.makeMove(move)) {
+        if (board.makeMove(moveList[i])) {
             int eval = alphaBeta(info, alpha, beta, depth - 1, true);
             ++legalMoves;
             board.undoMove();
-            if (beta > eval) {
+            if (eval < beta) {
                 beta = eval;
                 if (beta <= alpha) {
                     info.fhf += legalMoves == 1;
                     ++info.fh;
                     return alpha;
                 }
-                bestMove = move;
+                bestMove = moveList[i];
             }
         }
     }
