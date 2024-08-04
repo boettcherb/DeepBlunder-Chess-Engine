@@ -85,7 +85,7 @@ public:
     bool makeMove(int move);
     void undoMove();
     bool squaresAttacked(uint64 squares, int side) const;
-    bool is3foldRepetition() const;
+    bool isRepetition() const;
 
     // Evaluate.cpp
     int evaluatePosition() const;

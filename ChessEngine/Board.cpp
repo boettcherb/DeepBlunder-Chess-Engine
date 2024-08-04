@@ -368,26 +368,34 @@ bool Board::squaresAttacked(uint64 squares, int side) const {
 
 /*
  * 
- * Return true if this is the third time this position has occurred on the
- * board. We can compare the current position key with position keys stored in
- * the history array. We do not have to check all positions in the history
- * array. We only have to check positions with the same side to move (every
+ * Return true if this position has already occurred before on this board (is a
+ * repeat of a previous position). We can determine this by looking at the
+ * board's history array: We can compare the current position key with position
+ * keys stored in the history array. We do not have to check all positions in
+ * the history array - only the positions with the same side to move (every
  * other position) up until the fifty move count was reset to 0 (because it is
- * not possible to have the same position after a capture or a pawn move). If
- * there are at least 2 positions in the history array equal to the current
- * position, then there is a 3-fold repetition on the board.
+ * not possible to have the same position after a capture or a pawn move).
+ * 
+ * Note that this checks for a single repetition, while the rule in chess is
+ * that there is a draw if there is a 3-fold repetition. We only check for a
+ * single repetition because there is no point continuing the alpha-beta search
+ * from this position when we are already searching from the first occurrence
+ * of the repetition.
  * 
  */
-bool Board::is3foldRepetition() const {
+bool Board::isRepetition() const {
     assert(boardIsValid());
+    assert(fiftyMoveCount <= (int) history.size());
     int start = (int) history.size() - 2;
-    int stop = start - (fiftyMoveCount - 2);
-    int numRepetitions = 0;
+    int stop = (int) history.size() - fiftyMoveCount;
+    assert(stop >= 0);
     for (int i = start; i >= stop; i -= 2) {
         assert(i >= 0 && i < (int) history.size());
-        numRepetitions += positionKey == history[i].positionKey;
+        if (positionKey == history[i].positionKey) {
+            return true;
+        }
     }
-    return numRepetitions >= 2;
+    return false;
 }
 
 

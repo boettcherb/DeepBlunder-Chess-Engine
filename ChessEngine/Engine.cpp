@@ -98,7 +98,7 @@ int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max
     if (depth <= 0) {
         return board.evaluatePosition();
     }
-    if (board.getFiftyMoveCount() >= 100 || board.is3foldRepetition()) {
+    if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
         return 0;
     }
     MoveList moveList(board);
