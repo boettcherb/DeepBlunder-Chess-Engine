@@ -93,7 +93,7 @@ void Engine::setupSearch(SearchInfo& info) {
  * position based on the best sequence of moves for the current side to move.
  * 
  */
-int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max) {
+int Engine::alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max) {
     ++info.nodes;
     if (depth <= 0) {
         return board.evaluatePosition();
@@ -112,7 +112,7 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
         for (int i = 0; i < numMoves; ++i) {
             int move = moveList[i];
             if (board.makeMove(move)) {
-                int eval = alphaBeta(info, depth - 1, alpha, beta, false);
+                int eval = alphaBeta(info, alpha, beta, depth - 1, false);
                 ++legalMoves;
                 board.undoMove();
                 if (alpha < eval) {
@@ -143,7 +143,7 @@ int Engine::alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max
     for (int i = 0; i < numMoves; ++i) {
         int move = moveList[i];
         if (board.makeMove(move)) {
-            int eval = alphaBeta(info, depth - 1, alpha, beta, true);
+            int eval = alphaBeta(info, alpha, beta, depth - 1, true);
             ++legalMoves;
             board.undoMove();
             if (beta > eval) {
@@ -192,7 +192,7 @@ void Engine::searchPosition(SearchInfo& info) {
     setupSearch(info);
     std::cout << "Searching position...\n";
     for (int depth = 1; depth <= info.maxDepth; ++depth) {
-        int eval = alphaBeta(info, depth, -INF, INF, board.side() == WHITE);
+        int eval = alphaBeta(info, -INF, INF, depth, board.side() == WHITE);
         uint64 endTime = currentTime();
         std::vector<std::string> pvLine = getPVLine(depth);
 

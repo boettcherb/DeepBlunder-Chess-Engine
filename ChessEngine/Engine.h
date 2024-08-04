@@ -45,6 +45,6 @@ public:
 
 private:
     void setupSearch(SearchInfo& info);
-    int alphaBeta(SearchInfo& info, int depth, int alpha, int beta, bool max);
+    int alphaBeta(SearchInfo& info, int alpha, int beta, int depth, bool max);
     std::vector<std::string> getPVLine(int depth);
 };
