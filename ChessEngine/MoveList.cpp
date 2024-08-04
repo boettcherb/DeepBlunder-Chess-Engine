@@ -75,6 +75,7 @@ int MoveList::numMoves() const {
  */
 int MoveList::operator[](int index) const {
     assert(index >= 0 && index < (int) moves.size());
+    assert(validMove(moves[index]));
     return moves[index];
 }
 
