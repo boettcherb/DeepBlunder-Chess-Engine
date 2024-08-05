@@ -7,8 +7,25 @@
 #include <vector>
 #include <iostream>
 
+
 static inline constexpr int INF = 1000000000;
 static inline constexpr int MATE = 30000;
+
+
+/*
+ * 
+ * Constructor for SearchInfo. Initialize all member variables to default
+ * values. These variables should be set to reasonable values in setupSearch()
+ * before every search.
+ * 
+ */
+Engine::SearchInfo::SearchInfo() {
+    nodes = startTime = stopTime = 0;
+    quit = stop = true;
+    depthSet = timeSet = false;
+    maxDepth = -1;
+    fh = fhf = 0.0f;
+}
 
 
 /*
