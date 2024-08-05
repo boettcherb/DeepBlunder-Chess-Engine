@@ -1,6 +1,7 @@
 #include "Defs.h"
 #include <chrono>
 
+
 /*
  *
  * Retrieve the index of the given bitboard's least significant bit. Ex:
