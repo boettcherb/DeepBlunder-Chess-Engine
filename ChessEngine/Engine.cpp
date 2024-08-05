@@ -7,10 +7,8 @@
 #include <vector>
 #include <iostream>
 
-
 static inline constexpr int INF = 1000000000;
 static inline constexpr int MATE = 30000;
-
 
 /*
  * 
@@ -30,12 +28,21 @@ Engine::SearchInfo::SearchInfo() {
 
 /*
  * 
- * Engine constructor. Initialize the engine by initializing the hashkeys and
- * the bishop and rook attack tables.
+ * Engine constructor. Create the engine but don't initialize anything yet.
  * 
  */
 Engine::Engine() {
     static_assert(sizeof(uint64) == 8);
+}
+
+
+/*
+ * 
+ * Initialize the engine. Create the hash keys for zobrist hashing and
+ * initialize the bishop and rook sliding piece attack tables.
+ * 
+ */
+void Engine::initialize() {
     hashkey::initHashKeys();
     attack::initializeBishopAttackTable();
     attack::initializeRookAttackTable();
@@ -50,6 +57,56 @@ Engine::Engine() {
  */
 bool Engine::setupBoard(const std::string& fen) {
     return board.setToFEN(fen);
+}
+
+
+/*
+* 
+* Convert a moveString into an integer representing the move. A movestring is
+* made up of the 'from' and 'to' squares of the move. For example: e2e4, e1g1,
+* b7b8q, etc.
+* 
+*/
+int Engine::parseMoveString(const std::string& moveString) const {
+    assert(moveString.length() == 4 || moveString.length() == 5);
+    int from = static_cast<int>(moveString[0] - 'a') * 8;
+    from += static_cast<int>(moveString[1] - '1');
+    int to = static_cast<int>(moveString[2] - 'a') * 8;
+    to += static_cast<int>(moveString[3] - '1');
+    MoveList moveList(board);
+    int numMoves = moveList.numMoves();
+    for (int i = 0; i < numMoves; ++i) {
+        int move = moveList[i];
+        if ((move & 0x3F) == from && ((move >> 6) & 0x3F) == to) {
+            if (moveString.length() == 4) {
+                return move;
+            }
+            assert(move & PROMOTION_FLAG);
+            int promotedPiece = (move >> 16) & 0xF;
+            assert(promotedPiece >= 0 && promotedPiece < NUM_PIECE_TYPES);
+            if (moveString[4] == pieceChar[promotedPiece]) {
+                return move;
+            }
+        }
+    }
+    return INVALID;
+}
+
+
+/*
+ * 
+ * Given a list of move strings, make each move in order. The UCI protocol may
+ * ask us to set up the board with a starting position, plus a list of moves
+ * made from that position. This function takes in a list of moves, converts
+ * them from strings to integers, then makes the moves on the board.
+ * 
+ */
+void Engine::makeMoves(const std::vector<std::string>& moves) {
+    for (const std::string& moveString : moves) {
+        int move = parseMoveString(moveString);
+        assert(move != INVALID);
+        board.makeMove(move);
+    }
 }
 
 

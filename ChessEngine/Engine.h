@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+const inline std::string START_POS =
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /*
  * 
@@ -40,13 +42,16 @@ class Engine {
 public:
     Engine();
 
-    bool setupBoard(const std::string& fen);
+    void initialize();
+    bool setupBoard(const std::string& fen = START_POS);
+    void makeMoves(const std::vector<std::string>& moves);
     void searchPosition();
 
     // Perft.cpp
     void runPerftTests() const;
 
 private:
+    int parseMoveString(const std::string& moveString) const;
     void setupSearch();
     void checkup();
     int alphaBeta(int alpha, int beta, int depth, bool max);
