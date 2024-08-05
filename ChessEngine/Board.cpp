@@ -23,10 +23,7 @@ castlePerms{ c }, fiftyMoveCount{ f }, enPassantSquare{ e }, positionKey{ p } {}
  * string.
  *
  */
-Board::Board() {
-    reset();
-}
-Board::Board(const std::string& starting_fen) : Board() {
+Board::Board(const std::string& starting_fen) {
     setToFEN(starting_fen);
 }
 
@@ -78,21 +75,33 @@ uint64 Board::getPositionKey() const {
 
 /*
  *
- * Reset the board's member variables to their default values. sideToMove is
- * set to BOTH_COLORS so that an error occurs if it is not set to either WHITE
- * or BLACK during initialization. castlePerms, enPassantSquare, and the pieces
- * in the pieces array are set to INVALID. All other default values are 0.
+ * Reset the board's member variables to their default values (from the board's
+ * starting positon).
  *
  */
 void Board::reset() {
-    std::fill_n(pieceBitboards, NUM_PIECE_TYPES, 0);
-    std::fill_n(colorBitboards, 3, 0);
-    std::fill_n(pieces, 64, INVALID);
-    sideToMove = Color::BOTH_COLORS;
-    castlePerms = enPassantSquare = INVALID;
+    pieceBitboards[WHITE_PAWN]   = 0x000000000000FF00;
+    pieceBitboards[WHITE_KNIGHT] = 0x0000000000000042;
+    pieceBitboards[WHITE_BISHOP] = 0x0000000000000024;
+    pieceBitboards[WHITE_ROOK]   = 0x0000000000000081;
+    pieceBitboards[WHITE_QUEEN]  = 0x0000000000000008;
+    pieceBitboards[WHITE_KING]   = 0x0000000000000010;
+    pieceBitboards[BLACK_PAWN]   = 0x00FF000000000000;
+    pieceBitboards[BLACK_KNIGHT] = 0x4200000000000000;
+    pieceBitboards[BLACK_BISHOP] = 0x2400000000000000;
+    pieceBitboards[BLACK_ROOK]   = 0x8100000000000000;
+    pieceBitboards[BLACK_QUEEN]  = 0x0800000000000000;
+    pieceBitboards[BLACK_KING]   = 0x1000000000000000;
+    colorBitboards[WHITE] = 0x000000000000FFFF;
+    colorBitboards[BLACK] = 0xFFFF000000000000;
+    colorBitboards[BOTH_COLORS] = 0xFFFF00000000FFFF;
+    std::memcpy(pieces, defaultPieces, sizeof(defaultPieces));
+    sideToMove = WHITE;
+    castlePerms = 0xF;
+    enPassantSquare = INVALID;
     ply = fiftyMoveCount = 0;
-    material[0] = material[1] = 0;
-    positionKey = 0;
+    material[0] = material[1] = 3900;
+    positionKey = generatePositionKey();
     history.clear();
 }
 

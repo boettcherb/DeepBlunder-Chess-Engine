@@ -79,7 +79,10 @@ static bool containsOnly(const std::string& str, const std::string& chars) {
  *
  */
 bool Board::setToFEN(const std::string& fen) {
-    reset();
+    if (fen == START_POS) {
+        reset();
+        return true;
+    }
     std::vector<std::string> tokens = split(fen, ' ');
     if (tokens.size() != 6) {
         std::cerr << "Error: invalid fen: requires 6 tokens, found " <<

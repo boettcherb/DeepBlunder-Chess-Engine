@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+const inline std::string START_POS =
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 /*
  * 
@@ -69,7 +71,7 @@ class Board {
     uint64 positionKey;
 
 public:
-    Board();
+    Board() = default;
     Board(const std::string& starting_fen);
 
     int operator[](int square) const;
