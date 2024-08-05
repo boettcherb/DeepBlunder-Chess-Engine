@@ -8,57 +8,26 @@
 
 /*
  *
- * Return a string representing a square. For example, "a3" or "g7".
- *
- */
-static std::string squareString(int square) {
-    assert(square >= 0 && square < 64);
-    std::string str;
-    str.push_back('a' + static_cast<char>(square % 8));
-    str.push_back('1' + static_cast<char>(square / 8));
-    return str;
-}
-
-
-/*
- *
- * Return a string representing a move. For example, moving a knight from f3 to
- * g5 would return "Ng5 (f3 => g5)". A pawn capture from e7 to d8 that results
- * in a queen promotion would return "exd8=Q".
+ * Return a string representing a move. The string is just a combination of the
+ * 'from' and 'to' squares. For example, moving a knight from f3 to g5 would
+ * return "f3g5". A pawn capture from e7 to d8 that results in a queen would
+ * return "e7d8q".
  *
  */
 std::string Board::getMoveString(int move) const {
-    static std::string pieceChar[NUM_PIECE_TYPES] = {
-        "", "N", "B", "R", "Q", "K", "", "N", "B", "R", "Q", "K"
-    };
     assert(boardIsValid());
     int from = move & 0x3F;
     int to = (move >> 6) & 0x3F;
-    std::string fromString = squareString(from);
-    std::string toString = squareString(to);
-    assert(pieces[from] != INVALID);
-    if (pieces[from] == WHITE_PAWN || pieces[from] == BLACK_PAWN) {
-        std::string moveString = toString;
-        if (move & CAPTURE_FLAG) {
-            moveString = fromString.substr(0, 1) + "x" + toString;
-        }
-        if (move & PROMOTION_FLAG) {
-            int promotedPiece = (move >> 16) & 0xF;
-            assert(promotedPiece >= 0 && promotedPiece < NUM_PIECE_TYPES);
-            moveString += "=" + pieceChar[promotedPiece];
-        }
-        return moveString;
+    std::string moveString;
+    moveString.push_back('a' + static_cast<char>(from % 8));
+    moveString.push_back('1' + static_cast<char>(from / 8));
+    moveString.push_back('a' + static_cast<char>(to % 8));
+    moveString.push_back('1' + static_cast<char>(to / 8));
+    if (move & PROMOTION_FLAG) {
+        int promotedPiece = (move >> 16) & 0xF;
+        assert(promotedPiece >= 0 && promotedPiece < NUM_PIECE_TYPES);
+        moveString.push_back(pieceChar[promotedPiece]);
     }
-    if (move & CASTLE_FLAG) {
-        return to == G1 || to == G8 ? "O-O" : "O-O-O";
-    }
-    std::string moveString = pieceChar[pieces[from]];
-    if (move & CAPTURE_FLAG) {
-        assert(pieces[to] != INVALID);
-        moveString += "x";
-    }
-    moveString += toString;
-    moveString += "(" + fromString + ">" + toString + ")";
     return moveString;
 }
 
