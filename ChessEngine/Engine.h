@@ -5,21 +5,18 @@
 #include <string>
 #include <vector>
 
-const inline std::string START_POS =
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
-/*
- * 
- * A struct passed in to the Alpha-Beta search function that stores information
- * about the search, and that also allows the user/GUI to control when to stop
- * the search.
- * 
- * TODO: explain all of these variables
- * 
- */
 
 class Engine {
 
+    /*
+     * 
+     * A struct passed in to the Alpha-Beta search function that stores information
+     * about the search, and that also allows the user/GUI to control when to stop
+     * the search.
+     * 
+     * TODO: explain all of these variables
+     * 
+     */
     struct SearchInfo {
         uint64 nodes;     // the total number of nodes visited in the search tree
         uint64 startTime; // the time the search started
