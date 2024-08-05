@@ -78,12 +78,27 @@ std::vector<std::string> Engine::getPVLine(int depth) {
  * 
  */
 void Engine::setupSearch() {
-    info.startTime = currentTime();
+    table.initialize();
     info.nodes = 0;
     info.stop = info.quit = false;
     info.fh = info.fhf = 0.0f;
-    info.maxDepth = 4;
-    table.initialize();
+
+    info.startTime = currentTime();
+    info.timeSet = true;
+    info.stopTime = info.startTime + 10000;
+}
+
+
+/*
+ * 
+ * Check if we have run out of time. This is called in the Alpha-Beta and
+ * quiescence functions every 4096 nodes searched.
+ * 
+ */
+void Engine::checkup() {
+    if (info.timeSet && currentTime() > info.stopTime) {
+        info.stop = true;
+    }
 }
 
 
@@ -100,6 +115,9 @@ void Engine::setupSearch() {
  * 
  */
 int Engine::quiescence(int alpha, int beta, bool max) {
+    if ((info.nodes & 0xFFF) == 0) {
+        checkup();
+    }
     ++info.nodes;
     if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
         return 0;
@@ -125,6 +143,9 @@ int Engine::quiescence(int alpha, int beta, bool max) {
                 eval = quiescence(alpha, beta, false);
                 ++legalMoves;
                 board.undoMove();
+                if (info.stop) {
+                    return 0;
+                }
                 if (eval > alpha) {
                     alpha = eval;
                     if (beta <= alpha) {
@@ -161,6 +182,9 @@ int Engine::quiescence(int alpha, int beta, bool max) {
             eval = quiescence(alpha, beta, true);
             ++legalMoves;
             board.undoMove();
+            if (info.stop) {
+                return 0;
+            }
             if (eval < beta) {
                 beta = eval;
                 if (beta <= alpha) {
@@ -203,6 +227,9 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
     if (depth <= 0) {
         return quiescence(alpha, beta, max);
     }
+    if ((info.nodes & 0xFFF) == 0) {
+        checkup();
+    }
     ++info.nodes;
     if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
         return 0;
@@ -220,6 +247,9 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
                 int eval = alphaBeta(alpha, beta, depth - 1, false);
                 ++legalMoves;
                 board.undoMove();
+                if (info.stop) {
+                    return 0;
+                }
                 if (eval > alpha) {
                     alpha = eval;
                     if (beta <= alpha) {
@@ -250,6 +280,9 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
             int eval = alphaBeta(alpha, beta, depth - 1, true);
             ++legalMoves;
             board.undoMove();
+            if (info.stop) {
+                return 0;
+            }
             if (eval < beta) {
                 beta = eval;
                 if (beta <= alpha) {
@@ -292,19 +325,24 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
 void Engine::searchPosition() {
     setupSearch();
     std::cout << "Searching position...\n";
-    for (int depth = 1; depth <= info.maxDepth; ++depth) {
+    std::string bestMove;
+    int maxDepth = info.depthSet ? info.maxDepth : INF;
+    for (int depth = 1; depth <= maxDepth; ++depth) {
         int eval = alphaBeta(-INF, INF, depth, board.side() == WHITE);
-        uint64 endTime = currentTime();
+        if (info.stop) {
+            break;
+        }
         std::vector<std::string> pvLine = getPVLine(depth);
-
-        std::cout << "Depth " << depth << ":\n";
-        std::cout << "\tEvaluation: " << eval << '\n';
-        std::cout << "\tBest line: ";
+        assert(pvLine.size() > 0);
+        bestMove = pvLine[0];
+        std::cout << "info score cp " << eval << " depth " << depth;
+        std::cout << " nodes " << info.nodes << " time ";
+        std::cout << (currentTime() - info.startTime) << " pv ";
         for (std::string moveString : pvLine) {
             std::cout << moveString << ' ';
         } std::cout << '\n';
-        std::cout << "\tTime taken: " << (endTime - info.startTime) << " ms\n";
-        std::cout << "\tNodes searched: " << info.nodes << "\n";
         printf("\tordering: %.2f\n", info.fh == 0.0f ? 0.0f : info.fhf / info.fh);
     }
+    assert(bestMove != "");
+    std::cout << "bestmove " << bestMove << '\n';
 }

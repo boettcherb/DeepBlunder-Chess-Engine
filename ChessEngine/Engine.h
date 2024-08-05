@@ -23,8 +23,8 @@ class Engine {
         uint64 stopTime;
         uint64 nodes;
         int maxDepth;
-        int depthSet;  // true if we've set a depth limit for the search
-        int timeSet;   // true if we've set a time limit for the search
+        bool depthSet;  // true if we've set a depth limit for the search
+        bool timeSet;   // true if we've set a time limit for the search
         int movesToGo;
         bool inifinite;
         bool quit;
@@ -47,6 +47,7 @@ public:
 
 private:
     void setupSearch();
+    void checkup();
     int alphaBeta(int alpha, int beta, int depth, bool max);
     int quiescence(int alpha, int beta, bool max);
     std::vector<std::string> getPVLine(int depth);
