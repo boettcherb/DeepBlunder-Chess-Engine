@@ -700,6 +700,7 @@ static bool sameMove(int m1, int m2) {
  *
  */
 bool MoveList::moveExists(int move) {
+    assert(validMove(move));
     for (int m : moves) {
         if (sameMove(m, move)) {
             if (board.makeMove(m)) {
