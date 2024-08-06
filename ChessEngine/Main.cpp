@@ -1,11 +1,113 @@
 #include "Engine.h"
+#include <iostream>
+#include <thread>
+#include <vector>
+#include <sstream>
+#include <chrono>
+
+
+static bool hasNextToken(std::stringstream& ss) {
+    ss >> std::ws;
+    return !ss.eof();
+}
+
+
+static void search(Engine& chessEngine, SearchInfo info) {
+    chessEngine.searchPosition(info);
+}
+
+
+static void uci() {
+    Engine chessEngine;
+    std::thread searchThread;
+    std::cout << "id name DeepBlunder" << std::endl;
+    std::cout << "id author Brandon Boettcher" << std::endl;
+    std::cout << "uciok" << std::endl;
+    while (true) {
+        std::string input;
+        std::getline(std::cin, input);
+        std::vector<std::string> tokens;
+        std::stringstream ss(input);
+        while (hasNextToken(ss)) {
+            std::string tok;
+            ss >> tok;
+            tokens.push_back(tok);
+        }
+        if (tokens.size() == 0) {
+            continue;
+        }
+        if (tokens[0] == "isready") {
+            assert(tokens.size() == 1);
+            chessEngine.initialize();
+            std::cout << "readyok" << std::endl;
+        } else if (tokens[0] == "ucinewgame") {
+            assert(tokens.size() == 1);
+            chessEngine.setupBoard();
+        } else if (tokens[0] == "position") {
+            assert(tokens.size() > 1);
+            int index = 1;
+            if (tokens[index] == "fen") {
+                assert(tokens.size() > 2);
+                chessEngine.setupBoard(tokens[++index]);
+            } else {
+                assert(tokens[index] == "startpos");
+                chessEngine.setupBoard();
+            }
+            if (tokens.size() > ++index) {
+                assert(tokens[index] == "moves");
+                std::vector<std::string> moves;
+                while (++index < tokens.size()) {
+                    moves.push_back(tokens[index]);
+                }
+                chessEngine.makeMoves(moves);
+            }
+        } else if (tokens[0] == "go") {
+            SearchInfo info;
+            int index = 0;
+            while (++index < tokens.size()) {
+                if (tokens[index] == "depth") {
+                    assert(index + 1 < tokens.size());
+                    info.maxDepth = std::stoi(tokens[++index]);
+                } else if (tokens[index] == "winc") {
+                    assert(index + 1 < tokens.size());
+                    info.inc[WHITE] = std::stoi(tokens[++index]);
+                } else if (tokens[index] == "binc") {
+                    assert(index + 1 < tokens.size());
+                    info.inc[BLACK] = std::stoi(tokens[++index]);
+                } else if (tokens[index] == "wtime") {
+                    assert(index + 1 < tokens.size());
+                    info.time[WHITE] = std::stoi(tokens[++index]);
+                } else if (tokens[index] == "btime") {
+                    assert(index + 1 < tokens.size());
+                    info.time[BLACK] = std::stoi(tokens[++index]);
+                } else if (tokens[index] == "movetime") {
+                    assert(index + 1 < tokens.size());
+                    info.movetime = std::stoi(tokens[++index]);
+                } else if (tokens[index] == "movestogo") {
+                    info.movestogo = std::stoi(tokens[++index]);
+                }
+            }
+            searchThread = std::thread(search, std::ref(chessEngine), info);
+        } else if (tokens[0] == "stop") {
+            assert(tokens.size() == 1);
+            chessEngine.stopSearch();
+        } else if (tokens[0] == "quit") {
+            assert(tokens.size() == 1);
+            chessEngine.stopSearch();
+            break;
+        }
+    }
+}
+
 
 int main() {
-    Engine chessEngine = Engine();
-    //chessEngine.setupBoard("r1b1k2r/ppppnppp/2n2q2/2b5/3NP3/2P1B3/PP3PPP/RN1QKB1R w KQkq - 0 1");
-    //chessEngine.setupBoard("2rr3k/pp3pp1/1nnqbN1p/3pN3/2pP4/2P3Q1/PPB4P/R4RK1 w - - 0 1");
-    chessEngine.setupBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    //chessEngine.setupBoard("r5rk/5p1p/5R2/4B3/8/8/7P/7K w - - 0 1");
-    //chessEngine.setupBoard("Q7/5p2/5P1p/5PPN/6Pk/4N1Rp/7P/6K1 w - - 0 1");
-    chessEngine.searchPosition();
+    std::string protocol;
+    std::cin >> protocol;
+    if (protocol == "uci") {
+        uci();
+    }
+    // Engine chessEngine;
+    // chessEngine.initialize();
+    // chessEngine.setupBoard(START_POS);
+    // chessEngine.searchPosition();
 }
