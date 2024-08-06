@@ -17,18 +17,23 @@ static inline constexpr int MATE = 30000;
  * before every search.
  * 
  */
-Engine::SearchInfo::SearchInfo() {
+SearchInfo::SearchInfo() {
     nodes = startTime = stopTime = 0;
-    quit = stop = true;
-    depthSet = timeSet = false;
+    stop = false;
+    timeSet = false;
     maxDepth = -1;
     fh = fhf = 0.0f;
+    inc[WHITE] = inc[BLACK] = 0;
+    time[WHITE] = time[BLACK] = -1;
+    movetime = -1;
+    movestogo = 30;
 }
 
 
 /*
  * 
- * Engine constructor. Create the engine but don't initialize anything yet.
+ * Engine constructor. Create the engine but don't initialize anything yet
+ * (wait for the UCI protocol to tell us to initialize).
  * 
  */
 Engine::Engine() {
@@ -38,21 +43,23 @@ Engine::Engine() {
 
 /*
  * 
- * Initialize the engine. Create the hash keys for zobrist hashing and
- * initialize the bishop and rook sliding piece attack tables.
+ * Initialize the engine. Create the hash keys for zobrist hashing, the bishop
+ * and rook sliding piece attack tables, and the transposition table.
  * 
  */
 void Engine::initialize() {
     hashkey::initHashKeys();
     attack::initializeBishopAttackTable();
     attack::initializeRookAttackTable();
+    table.initialize();
 }
 
 
 /*
  * 
- * Setup the board according to the given position by calling setToFEN(). If
- * the position cannot be set up, return false.
+ * Setup the board according to the given position by calling setToFEN(). The
+ * default position is the starting position. If the position cannot be set up,
+ * return false.
  * 
  */
 bool Engine::setupBoard(const std::string& fen) {
@@ -69,10 +76,12 @@ bool Engine::setupBoard(const std::string& fen) {
 */
 int Engine::parseMoveString(const std::string& moveString) const {
     assert(moveString.length() == 4 || moveString.length() == 5);
-    int from = static_cast<int>(moveString[0] - 'a') * 8;
-    from += static_cast<int>(moveString[1] - '1');
-    int to = static_cast<int>(moveString[2] - 'a') * 8;
-    to += static_cast<int>(moveString[3] - '1');
+    int from = static_cast<int>(moveString[1] - '1') * 8;
+    from += static_cast<int>(moveString[0] - 'a');
+    int to = static_cast<int>(moveString[3] - '1') * 8;
+    to += static_cast<int>(moveString[2] - 'a');
+    assert(from >= 0 && from < 64);
+    assert(to >= 0 && to < 64);
     MoveList moveList(board);
     int numMoves = moveList.numMoves();
     for (int i = 0; i < numMoves; ++i) {
@@ -146,20 +155,50 @@ std::vector<std::string> Engine::getPVLine(int depth) {
 
 
 /*
+* 
+* Call this function to stop the current search. This function must be used if
+* the search is not based on a specific time per move or a maximum depth. This
+* is called whenever we receive a "stop" or "quit" command from the GUI via the
+* UCI protocol.
+* 
+*/
+void Engine::stopSearch() {
+    info.stop = true;
+}
+
+
+/*
  * 
- * Setup some of the variables and data structures used during the alpha-beta
- * search, such as the variables in 'info' and the transposition table.
+ * Setup the search time controls based on information passed in from the GUI
+ * via the UCI protocol. 
  * 
  */
 void Engine::setupSearch() {
-    table.initialize();
     info.nodes = 0;
-    info.stop = info.quit = false;
+    info.stop = false;
     info.fh = info.fhf = 0.0f;
-
     info.startTime = currentTime();
-    info.timeSet = true;
-    info.stopTime = info.startTime + 10000;
+
+    int side = board.side();
+    if (info.movetime != -1) {
+        info.time[side] = info.movetime;
+        info.movestogo = 1;
+    }
+    if (info.maxDepth == -1) {
+        info.maxDepth = INF;
+    }
+    if (info.time[side] != -1) {
+        info.timeSet = true;
+        info.time[side] /= info.movestogo;
+        info.time[side] -= 50;
+        info.stopTime = info.startTime + info.time[side] + info.inc[side];
+    }
+
+    std::cout << "timeSet: " << info.timeSet << ", ";
+    std::cout << "time: " << info.time[side] << ", ";
+    std::cout << "startTime: " << info.startTime << ", ";
+    std::cout << "stopTime: " << info.stopTime << ", ";
+    std::cout << "depth: " << info.maxDepth << std::endl;
 }
 
 
@@ -396,12 +435,11 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
  * if the best moves are considered first.
  * 
  */
-void Engine::searchPosition() {
+void Engine::searchPosition(const SearchInfo& searchInfo) {
+    info = searchInfo;
     setupSearch();
-    std::cout << "Searching position...\n";
     std::string bestMove;
-    int maxDepth = info.depthSet ? info.maxDepth : INF;
-    for (int depth = 1; depth <= maxDepth; ++depth) {
+    for (int depth = 1; depth <= info.maxDepth; ++depth) {
         int eval = alphaBeta(-INF, INF, depth, board.side() == WHITE);
         if (info.stop) {
             break;
