@@ -107,6 +107,9 @@ static void uci() {
             break;
         }
     }
+    if (searchThread.joinable()) {
+        searchThread.join();
+    }
 }
 
 
