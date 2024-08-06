@@ -228,10 +228,10 @@ void Engine::checkup() {
  * 
  */
 int Engine::quiescence(int alpha, int beta, bool max) {
+    ++info.nodes;
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
-    ++info.nodes;
     if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
         return 0;
     }
@@ -340,10 +340,10 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
     if (depth <= 0) {
         return quiescence(alpha, beta, max);
     }
+    ++info.nodes;
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
-    ++info.nodes;
     if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
         return 0;
     }
@@ -452,9 +452,9 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         std::cout << (currentTime() - info.startTime) << " pv ";
         for (std::string moveString : pvLine) {
             std::cout << moveString << ' ';
-        } std::cout << '\n';
+        } std::cout << std::endl;
         printf("\tordering: %.2f\n", info.fh == 0.0f ? 0.0f : info.fhf / info.fh);
     }
     assert(bestMove != "");
-    std::cout << "bestmove " << bestMove << '\n';
+    std::cout << "bestmove " << bestMove << std::endl;
 }

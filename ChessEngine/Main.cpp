@@ -5,6 +5,8 @@
 #include <sstream>
 #include <chrono>
 
+constexpr inline int VERSION_MAJOR = 1;
+constexpr inline int VERSION_MINOR = 0;
 
 static bool hasNextToken(std::stringstream& ss) {
     ss >> std::ws;
@@ -20,7 +22,8 @@ static void search(Engine& chessEngine, SearchInfo info) {
 static void uci() {
     Engine chessEngine;
     std::thread searchThread;
-    std::cout << "id name DeepBlunder" << std::endl;
+    std::cout << "id name DeepBlunder " << VERSION_MAJOR <<
+        "." << VERSION_MINOR << std::endl;
     std::cout << "id author Brandon Boettcher" << std::endl;
     std::cout << "uciok" << std::endl;
     while (true) {
@@ -86,6 +89,9 @@ static void uci() {
                 } else if (tokens[index] == "movestogo") {
                     info.movestogo = std::stoi(tokens[++index]);
                 }
+            }
+            if (searchThread.joinable()) {
+                searchThread.join();
             }
             searchThread = std::thread(search, std::ref(chessEngine), info);
         } else if (tokens[0] == "stop") {

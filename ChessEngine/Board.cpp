@@ -394,9 +394,8 @@ bool Board::squaresAttacked(uint64 squares, int side) const {
  */
 bool Board::isRepetition() const {
     assert(boardIsValid());
-    assert(fiftyMoveCount <= (int) history.size());
     int start = (int) history.size() - 2;
-    int stop = (int) history.size() - fiftyMoveCount;
+    int stop = std::max(0, (int) history.size() - fiftyMoveCount);
     assert(stop >= 0);
     for (int i = start; i >= stop; i -= 2) {
         assert(i >= 0 && i < (int) history.size());

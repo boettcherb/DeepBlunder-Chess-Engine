@@ -129,7 +129,11 @@ bool Board::setToFEN(const std::string& fen) {
                 case 'r': pieces[square++] = BLACK_ROOK; break;
                 case 'q': pieces[square++] = BLACK_QUEEN; break;
                 case 'k': pieces[square++] = BLACK_KING; break;
-                default: square += c - '0';
+                default:
+                    int spaces = static_cast<int>(c - '0');
+                    while (spaces--) {
+                        pieces[square++] = INVALID;
+                    }
             }
         }
     }
