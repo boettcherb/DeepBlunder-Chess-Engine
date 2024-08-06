@@ -447,9 +447,22 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         std::vector<std::string> pvLine = getPVLine(depth);
         assert(pvLine.size() > 0);
         bestMove = pvLine[0];
-        std::cout << "info score cp " << eval << " depth " << depth;
-        std::cout << " nodes " << info.nodes << " time ";
-        std::cout << (currentTime() - info.startTime) << " pv ";
+        if (board.side() == BLACK) {
+            eval = -eval;
+        }
+        if (eval > 20000) {
+            int mate = depth - (eval - MATE);
+            std::cout << "info score mate " << ((mate + 1) / 2);
+        }
+        else if (eval < -20000) {
+            int mate = depth - (-eval - MATE);
+            std::cout << "info score mate " << -((mate + 1) / 2);
+        }
+        else {
+            std::cout << "info score cp " << eval;
+        }
+        std::cout << " depth " << depth << " nodes " << info.nodes;
+        std::cout << " time " << (currentTime() - info.startTime) << " pv ";
         for (std::string moveString : pvLine) {
             std::cout << moveString << ' ';
         } std::cout << std::endl;
