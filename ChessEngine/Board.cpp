@@ -71,6 +71,21 @@ uint64 Board::getPositionKey() const {
     assert(boardIsValid());
     return positionKey;
 }
+int Board::getSearchPly() const {
+    assert(boardIsValid());
+    return searchPly;
+}
+
+
+/*
+ *
+ * Setter method to reset the searchPly to 0. This is called before every
+ * search.
+ *
+ */
+void Board::resetSearchPly() {
+    searchPly = 0;
+}
 
 
 /*
@@ -220,6 +235,7 @@ bool Board::makeMove(int move) {
     history.emplace_back(move, castlePerms, fiftyMoveCount,
                          enPassantSquare, positionKey);
     ++ply;
+    ++searchPly;
     if (enPassantSquare != INVALID) {
         positionKey ^= hashkey::getEnPassantKey(enPassantSquare);
         enPassantSquare = INVALID;
@@ -285,6 +301,7 @@ void Board::undoMove() {
     assert(history.size() > 0);
     assert(ply == (int) history.size());
     --ply;
+    --searchPly;
     sideToMove = !sideToMove;
     int move = history.back().move;
     int from = move & 0x3F;

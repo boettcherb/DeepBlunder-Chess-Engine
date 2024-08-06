@@ -193,6 +193,7 @@ void Engine::setupSearch() {
         info.time[side] -= 50;
         info.stopTime = info.startTime + info.time[side] + info.inc[side];
     }
+    board.resetSearchPly();
 
     std::cout << "timeSet: " << info.timeSet << ", ";
     std::cout << "time: " << info.time[side] << ", ";
@@ -377,7 +378,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
         if (legalMoves == 0) {
             uint64 king = board.getPieceBitboard(WHITE_KING);
             if (board.squaresAttacked(king, BLACK)) {
-                return -(MATE + depth);
+                return -(MATE - board.getSearchPly());
             }
             return 0;
         }
@@ -410,7 +411,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
     if (legalMoves == 0) {
         uint64 king = board.getPieceBitboard(BLACK_KING);
         if (board.squaresAttacked(king, WHITE)) {
-            return MATE + depth;
+            return MATE - board.getSearchPly();
         }
         return 0;
     }
@@ -451,11 +452,11 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
             eval = -eval;
         }
         if (eval > 20000) {
-            int mate = depth - (eval - MATE);
+            int mate = MATE - eval;
             std::cout << "info score mate " << ((mate + 1) / 2);
         }
         else if (eval < -20000) {
-            int mate = depth - (-eval - MATE);
+            int mate = MATE + eval;
             std::cout << "info score mate " << -((mate + 1) / 2);
         }
         else {

@@ -29,6 +29,8 @@ const inline std::string START_POS =
  *                    whose turn it is in the current position.
  * ply:               An integer holding the number of half moves made to get
  *                    to the current board position.
+ * searchPly:         An integer holding the number of half moves made in the
+                      current search.
  * castlePerms:       A combination of bit flags denoting which castling moves
  *                    are legal. Ex: If (castlePerms & CASTLE_WQ != 0), then
  *                    white can castle queenside in the current position.
@@ -62,7 +64,7 @@ class Board {
     uint64 colorBitboards[3];
     int pieces[64];
     int sideToMove;
-    int ply;
+    int ply, searchPly;
     int castlePerms;
     int fiftyMoveCount;
     int enPassantSquare;
@@ -82,6 +84,8 @@ public:
     int getEnPassantSquare() const;
     int getFiftyMoveCount() const;
     uint64 getPositionKey() const;
+    int getSearchPly() const;
+    void resetSearchPly();
 
     void reset();
     bool makeMove(int move);
