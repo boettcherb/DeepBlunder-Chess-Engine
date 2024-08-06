@@ -20,14 +20,18 @@ static void search(Engine& chessEngine, SearchInfo info) {
 
 
 static void uci() {
-    Engine chessEngine;
+    Engine engine;
     std::thread searchThread;
     std::cout << "id name DeepBlunder " << VERSION_MAJOR <<
         "." << VERSION_MINOR << std::endl;
     std::cout << "id author Brandon Boettcher" << std::endl;
     std::cout << "uciok" << std::endl;
+    std::string input;
+    std::getline(std::cin, input);
+    assert(input == "isready");
+    engine.initialize();
+    std::cout << "readyok" << std::endl;
     while (true) {
-        std::string input;
         std::getline(std::cin, input);
         std::vector<std::string> tokens;
         std::stringstream ss(input);
@@ -41,20 +45,19 @@ static void uci() {
         }
         if (tokens[0] == "isready") {
             assert(tokens.size() == 1);
-            chessEngine.initialize();
             std::cout << "readyok" << std::endl;
         } else if (tokens[0] == "ucinewgame") {
             assert(tokens.size() == 1);
-            chessEngine.setupBoard();
+            engine.setupBoard();
         } else if (tokens[0] == "position") {
             assert(tokens.size() > 1);
             int index = 1;
             if (tokens[index] == "fen") {
                 assert(tokens.size() > 2);
-                chessEngine.setupBoard(tokens[++index]);
+                engine.setupBoard(tokens[++index]);
             } else {
                 assert(tokens[index] == "startpos");
-                chessEngine.setupBoard();
+                engine.setupBoard();
             }
             if (tokens.size() > ++index) {
                 assert(tokens[index] == "moves");
@@ -62,7 +65,7 @@ static void uci() {
                 while (++index < tokens.size()) {
                     moves.push_back(tokens[index]);
                 }
-                chessEngine.makeMoves(moves);
+                engine.makeMoves(moves);
             }
         } else if (tokens[0] == "go") {
             SearchInfo info;
@@ -93,13 +96,13 @@ static void uci() {
             if (searchThread.joinable()) {
                 searchThread.join();
             }
-            searchThread = std::thread(search, std::ref(chessEngine), info);
+            searchThread = std::thread(search, std::ref(engine), info);
         } else if (tokens[0] == "stop") {
             assert(tokens.size() == 1);
-            chessEngine.stopSearch();
+            engine.stopSearch();
         } else if (tokens[0] == "quit") {
             assert(tokens.size() == 1);
-            chessEngine.stopSearch();
+            engine.stopSearch();
             break;
         }
     }
@@ -111,6 +114,9 @@ int main() {
     std::cin >> protocol;
     if (protocol == "uci") {
         uci();
+    }
+    else {
+        std::cout << "Error: unrecognized protocol" << std::endl;
     }
     // Engine chessEngine;
     // chessEngine.initialize();
