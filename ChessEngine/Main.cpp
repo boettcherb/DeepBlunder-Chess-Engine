@@ -28,6 +28,7 @@ static void uci() {
     std::cout << "uciok" << std::endl;
     std::string input;
     std::getline(std::cin, input);
+    std::getline(std::cin, input);
     assert(input == "isready");
     engine.initialize();
     std::cout << "readyok" << std::endl;
