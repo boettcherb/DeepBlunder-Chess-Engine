@@ -233,7 +233,8 @@ int Engine::quiescence(int alpha, int beta, bool max) {
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
-    if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
+    if (board.getSearchPly() > 0 && (board.getFiftyMoveCount() >= 100
+                                     || board.isRepetition())) {
         return 0;
     }
     int eval = board.evaluatePosition();
@@ -345,7 +346,8 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
-    if (board.getFiftyMoveCount() >= 100 || board.isRepetition()) {
+    if (board.getSearchPly() > 0 && (board.getFiftyMoveCount() >= 100
+                                     || board.isRepetition())) {
         return 0;
     }
     MoveList moveList(board);
