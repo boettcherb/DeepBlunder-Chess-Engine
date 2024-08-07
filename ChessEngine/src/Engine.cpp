@@ -405,6 +405,9 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
 #ifndef NDEBUG
         printf("\tordering: %.2f\n", info.fh == 0.0f ? 0.0f : info.fhf / info.fh);
 #endif
+        if (eval > 20000) {
+            break;
+        }
     }
     assert(bestMove != "");
     std::cout << "bestmove " << bestMove << std::endl;

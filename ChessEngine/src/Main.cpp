@@ -7,7 +7,7 @@
 
 constexpr inline int VERSION_MAJOR = 1;
 constexpr inline int VERSION_MINOR = 0;
-constexpr inline int VERSION_PATCH = 4;
+constexpr inline int VERSION_PATCH = 5;
 
 
 static bool hasNextToken(std::stringstream& ss) {
