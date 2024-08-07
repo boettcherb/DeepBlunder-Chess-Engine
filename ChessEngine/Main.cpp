@@ -21,18 +21,14 @@ static void search(Engine& chessEngine, SearchInfo info) {
 
 static void uci() {
     Engine engine;
+    bool initialized = false;
     std::thread searchThread;
     std::cout << "id name DeepBlunder " << VERSION_MAJOR <<
         "." << VERSION_MINOR << std::endl;
     std::cout << "id author Brandon Boettcher" << std::endl;
     std::cout << "uciok" << std::endl;
-    std::string input;
-    std::getline(std::cin, input);
-    std::getline(std::cin, input);
-    assert(input == "isready");
-    engine.initialize();
-    std::cout << "readyok" << std::endl;
     while (true) {
+        std::string input;
         std::getline(std::cin, input);
         std::vector<std::string> tokens;
         std::stringstream ss(input);
@@ -46,10 +42,11 @@ static void uci() {
         }
         if (tokens[0] == "isready") {
             assert(tokens.size() == 1);
+            if (!initialized) {
+                engine.initialize();
+                initialized = true;
+            }
             std::cout << "readyok" << std::endl;
-        } else if (tokens[0] == "ucinewgame") {
-            assert(tokens.size() == 1);
-            engine.setupBoard();
         } else if (tokens[0] == "position") {
             assert(tokens.size() > 1);
             int index = 1;
