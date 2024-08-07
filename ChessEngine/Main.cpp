@@ -91,6 +91,7 @@ static void uci() {
                     assert(index + 1 < tokens.size());
                     info.movetime = std::stoi(tokens[++index]);
                 } else if (tokens[index] == "movestogo") {
+                    assert(index + 1 < tokens.size());
                     info.movestogo = std::stoi(tokens[++index]);
                 }
             }
@@ -121,9 +122,8 @@ int main() {
     }
     else {
         std::cout << "Error: unrecognized protocol" << std::endl;
+        Engine engine;
+        engine.initialize();
+        engine.runPerftTests();
     }
-    // Engine chessEngine;
-    // chessEngine.initialize();
-    // chessEngine.setupBoard(START_POS);
-    // chessEngine.searchPosition();
 }

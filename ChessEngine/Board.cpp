@@ -18,13 +18,11 @@ castlePerms{ c }, fiftyMoveCount{ f }, enPassantSquare{ e }, positionKey{ p } {}
 
 /*
  *
- * Board constructor. Initializes all board member variables to a default
- * value. If a FEN string is given, the board is set up according to that
- * string.
+ * Board constructor. Set up the board according to the given FEN string.
  *
  */
-Board::Board(const std::string& starting_fen) {
-    setToFEN(starting_fen);
+Board::Board(const std::string& fen) {
+    setToFEN(fen);
 }
 
 
@@ -32,8 +30,8 @@ Board::Board(const std::string& starting_fen) {
  *
  * Getter methods to retrieve the piece on the given square, the side to move,
  * the bitboard of a given piece, the bitboard of a given color, the castle
- * permissions, the en passant square, the fifty move rule count, and the
- * current position key.
+ * permissions, the en passant square, the fifty move rule count, the current
+ * position key, and the search ply.
  *
  */
 int Board::operator[](int index) const {
@@ -114,7 +112,7 @@ void Board::reset() {
     sideToMove = WHITE;
     castlePerms = 0xF;
     enPassantSquare = INVALID;
-    ply = fiftyMoveCount = 0;
+    ply = searchPly = fiftyMoveCount = 0;
     material[0] = material[1] = 3900;
     positionKey = generatePositionKey();
     history.clear();
@@ -192,16 +190,16 @@ void Board::movePiece(int from, int to) {
 
 /*
  * This array is used to update the castlePermissions member of the board
- * struct. Whenever a move is made, this operation:
- * board->castlePermissions &= castlePerms[from] & castlePerms[to];
- * is all that is needed to update the board's castle permissions. Note that
- * most squares (except the starting positions of the kings and rooks) are
- * 0xF, which causes the above operation to have no effect. This is because
- * the castle permissions of a chess board do not change if the rooks/kings
- * are not the pieces that are moving/being taken. Example: castlePerms[A1]
- * is 0xD (1101). If the rook on A1 moves/is taken, board->castlePermissions
- * will be updated from 1111 to 1101 with the above operation, which signifies
- * that white can no longer castle queenside.
+ * struct. Whenever a move is made, this operation: "castlePerms &=
+ * castlePermissions[from] & castlePermissions[to];" is all that is needed to
+ * update the board's castle permissions. Note that most squares (except the
+ * starting positions of the kings and rooks) are 0xF, which causes the above
+ * operation to have no effect. This is because the castle permissions of a
+ * chess board do not change if the rooks/kings are not the pieces that are
+ * moving/being taken. Example: castlePerms[A1] is 0xD (1101). If the rook on
+ * A1 moves/is taken, board->castlePermissions will be updated from 1111 to
+ * 1101 with the above operation, which signifies that white can no longer
+ * castle queenside.
  */
 static inline constexpr int castlePermissions[64] = {
     0xD, 0xF, 0xF, 0xF, 0xC, 0xF, 0xF, 0xE,
@@ -397,10 +395,11 @@ bool Board::squaresAttacked(uint64 squares, int side) const {
  * Return true if this position has already occurred before on this board (is a
  * repeat of a previous position). We can determine this by looking at the
  * board's history array: We can compare the current position key with position
- * keys stored in the history array. We do not have to check all positions in
- * the history array - only the positions with the same side to move (every
- * other position) up until the fifty move count was reset to 0 (because it is
- * not possible to have the same position after a capture or a pawn move).
+ * keys stored in the history array. If the position keys match, then there was
+ * a repetition. We do not have to check all positions in the history array -
+ * only those with the same side to move (every other position) up until the
+ * fifty move count was reset to 0 (because it is not possible to have the same
+ * position after a capture or a pawn move).
  * 
  * Note that this checks for a single repetition, while the rule in chess is
  * that there is a draw if there is a 3-fold repetition. We only check for a
@@ -449,12 +448,10 @@ uint64 Board::generatePositionKey() const {
 
 /*
  * 
- * Return true if the board is a valid chessboard. Check to make sure that the
- * board's member variables have reasonable values, that the bitboards match
- * the pieces array, that the matieral counts match the pieces, etc. This
- * method currently does not allow for any variant of chess that might have
- * abnormal piece placements (such as Chess960) or abnormal amounts of pieces
- * such as Horde chess).
+ * Debugging function. Return true if the board is a valid chessboard. Check to
+ * make sure that the board's member variables have reasonable values, that the
+ * bitboards match the pieces array, that the matieral counts match the pieces,
+ * etc.
  * 
  */
 bool Board::boardIsValid() const {
@@ -489,6 +486,11 @@ bool Board::boardIsValid() const {
             }
         }
         if (count > 1 || piece != pieces[sq]) {
+            std::cout << "pieces:\n";
+            for (int i = 0; i < 64; ++i) {
+                printf("%2d ", pieces[i]);
+                if (i % 8 == 7) std::cout << "\n";
+            }
             std::cerr << "Invalid pieces[] array" << std::endl;
             return false;
         }

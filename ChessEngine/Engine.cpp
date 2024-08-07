@@ -19,14 +19,15 @@ static inline constexpr int MATE = 30000;
  */
 SearchInfo::SearchInfo() {
     nodes = startTime = stopTime = 0;
-    stop = false;
-    timeSet = false;
+    stop = timeSet = false;
     maxDepth = -1;
-    fh = fhf = 0.0f;
     inc[WHITE] = inc[BLACK] = 0;
     time[WHITE] = time[BLACK] = -1;
     movetime = -1;
     movestogo = 30;
+#ifndef NDEBUG
+    fh = fhf = 0.0f;
+#endif
 }
 
 
@@ -43,7 +44,7 @@ Engine::Engine() {
 
 /*
  * 
- * Initialize the engine. Create the hash keys for zobrist hashing, the bishop
+ * Initialize the engine. Create the hash keys for Zobrist hashing, the bishop
  * and rook sliding piece attack tables, and the transposition table.
  * 
  */
@@ -68,12 +69,12 @@ bool Engine::setupBoard(const std::string& fen) {
 
 
 /*
-* 
-* Convert a moveString into an integer representing the move. A movestring is
-* made up of the 'from' and 'to' squares of the move. For example: e2e4, e1g1,
-* b7b8q, etc.
-* 
-*/
+ * 
+ * Convert a moveString into an integer representing the move. A movestring is
+ * made up of the 'from' and 'to' squares of the move. For example: e2e4, e1g1,
+ * b7b8q, etc.
+ * 
+ */
 int Engine::parseMoveString(const std::string& moveString) const {
     assert(moveString.length() == 4 || moveString.length() == 5);
     int from = static_cast<int>(moveString[1] - '1') * 8;
@@ -114,7 +115,12 @@ void Engine::makeMoves(const std::vector<std::string>& moves) {
     for (const std::string& moveString : moves) {
         int move = parseMoveString(moveString);
         assert(move != INVALID);
+#ifndef NDEBUG
+        bool moveMade = board.makeMove(move);
+        assert(moveMade);
+#else
         board.makeMove(move);
+#endif
     }
 }
 
@@ -170,15 +176,14 @@ void Engine::stopSearch() {
 /*
  * 
  * Setup the search time controls based on information passed in from the GUI
- * via the UCI protocol. 
+ * via the UCI protocol. If a specific movetime was given, set the time of the
+ * current side to that value
  * 
  */
 void Engine::setupSearch() {
     info.nodes = 0;
     info.stop = false;
-    info.fh = info.fhf = 0.0f;
     info.startTime = currentTime();
-
     int side = board.side();
     if (info.movetime != -1) {
         info.time[side] = info.movetime;
@@ -190,16 +195,17 @@ void Engine::setupSearch() {
     if (info.time[side] != -1) {
         info.timeSet = true;
         info.time[side] /= info.movestogo;
-        info.time[side] -= 50;
-        info.stopTime = info.startTime + info.time[side] + info.inc[side];
+        info.stopTime = info.startTime + info.time[side] + info.inc[side] - 50;
     }
     board.resetSearchPly();
-
+#ifndef NDEBUG
+    info.fh = info.fhf = 0.0f;
     std::cout << "timeSet: " << info.timeSet << ", ";
     std::cout << "time: " << info.time[side] << ", ";
     std::cout << "startTime: " << info.startTime << ", ";
     std::cout << "stopTime: " << info.stopTime << ", ";
     std::cout << "depth: " << info.maxDepth << std::endl;
+#endif
 }
 
 
@@ -233,8 +239,8 @@ int Engine::quiescence(int alpha, int beta, bool max) {
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
-    if (board.getSearchPly() > 0 && (board.getFiftyMoveCount() >= 100
-                                     || board.isRepetition())) {
+    if ((board.getSearchPly() > 0 && board.isRepetition())
+        || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
     int eval = board.evaluatePosition();
@@ -247,8 +253,6 @@ int Engine::quiescence(int alpha, int beta, bool max) {
             }
         }
         MoveList moveList(board, true);
-        // TODO: retrieve the bestMove for the current position from the transposition
-        // table and make it first in the movelist ordering
         int numMoves = moveList.numMoves(), legalMoves = 0;
         int bestMove = INVALID;
         int oldAlpha = alpha;
@@ -264,8 +268,10 @@ int Engine::quiescence(int alpha, int beta, bool max) {
                 if (eval > alpha) {
                     alpha = eval;
                     if (beta <= alpha) {
+#ifndef NDEBUG
                         info.fhf += legalMoves == 1;
                         ++info.fh;
+#endif
                         return beta;
                     }
                     bestMove = moveList[i];
@@ -286,8 +292,6 @@ int Engine::quiescence(int alpha, int beta, bool max) {
         }
     }
     MoveList moveList(board, true);
-    // TODO: retrieve the bestMove for the current position from the transposition
-    // table and make it first in the movelist ordering
     int numMoves = moveList.numMoves(), legalMoves = 0;
     int bestMove = INVALID;
     int oldBeta = beta;
@@ -303,8 +307,10 @@ int Engine::quiescence(int alpha, int beta, bool max) {
             if (eval < beta) {
                 beta = eval;
                 if (beta <= alpha) {
+#ifndef NDEBUG
                     info.fhf += legalMoves == 1;
                     ++info.fh;
+#endif
                     return alpha;
                 }
                 bestMove = moveList[i];
@@ -330,9 +336,9 @@ int Engine::quiescence(int alpha, int beta, bool max) {
  * white's move and we find a position with an evaluation > alpha, we update
  * alpha. Similarly, if it is black's move and the evaluation is < beta, we
  * update beta. However, if alpha becomes >= beta, then we've encountered a
- * position that is 'too good' for white. Black has a chance to go down a
- * different branch with a lower evaluation, and so black will never go down
- * this branch, which means it can be pruned.
+ * position that is 'too good' for one side. The other side will have a chance
+ * to avoid that path by choosing a different move. If this occurs, the current
+ * branch can be pruned.
  * 
  * The bool 'max' is true if it is currently the maximizing player's move (ie.
  * white's move) and false if it is the minimizing player's (black's) move.
@@ -346,13 +352,11 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
-    if (board.getSearchPly() > 0 && (board.getFiftyMoveCount() >= 100
-                                     || board.isRepetition())) {
+    if ((board.getSearchPly() > 0 && board.isRepetition())
+        || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
     MoveList moveList(board);
-    // TODO: retrieve the bestMove for the current position from the transposition
-    // table and make it first in the movelist ordering
     int numMoves = moveList.numMoves(), legalMoves = 0;
     int bestMove = INVALID;
     int oldAlpha = alpha, oldBeta = beta;
@@ -369,8 +373,10 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
                 if (eval > alpha) {
                     alpha = eval;
                     if (beta <= alpha) {
+#ifndef NDEBUG
                         info.fhf += legalMoves == 1;
                         ++info.fh;
+#endif
                         return beta;
                     }
                     bestMove = moveList[i];
@@ -402,8 +408,10 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
             if (eval < beta) {
                 beta = eval;
                 if (beta <= alpha) {
+#ifndef NDEBUG
                     info.fhf += legalMoves == 1;
                     ++info.fh;
+#endif
                     return alpha;
                 }
                 bestMove = moveList[i];
@@ -437,6 +445,9 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
  * ordering is critical because more nodes can be pruned from the search tree
  * if the best moves are considered first.
  * 
+ * Once the search completes, print out the best move to the console so that
+ * it can be read by the GUI.
+ * 
  */
 void Engine::searchPosition(const SearchInfo& searchInfo) {
     info = searchInfo;
@@ -469,7 +480,9 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         for (std::string moveString : pvLine) {
             std::cout << moveString << ' ';
         } std::cout << std::endl;
+#ifndef NDEBUG
         printf("\tordering: %.2f\n", info.fh == 0.0f ? 0.0f : info.fhf / info.fh);
+#endif
     }
     assert(bestMove != "");
     std::cout << "bestmove " << bestMove << std::endl;

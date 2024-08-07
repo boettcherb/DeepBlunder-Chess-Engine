@@ -199,6 +199,13 @@ bool Board::setToFEN(const std::string& fen) {
         return false;
     }
 
+    for (int type = 0; type < NUM_PIECE_TYPES; ++type) {
+        pieceBitboards[type] = 0ULL;
+    }
+    colorBitboards[WHITE] = colorBitboards[BLACK] = 0ULL;
+    colorBitboards[BOTH_COLORS] = 0ULL;
+    material[WHITE] = material[BLACK] = 0;
+
     for (int sq = 0; sq < 64; ++sq) {
         if (pieces[sq] == INVALID) continue;
         assert(pieces[sq] >= 0 && pieces[sq] < NUM_PIECE_TYPES);

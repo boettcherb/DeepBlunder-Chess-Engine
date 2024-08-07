@@ -30,7 +30,7 @@ const inline std::string START_POS =
  * ply:               An integer holding the number of half moves made to get
  *                    to the current board position.
  * searchPly:         An integer holding the number of half moves made in the
-                      current search.
+ *                    current search.
  * castlePerms:       A combination of bit flags denoting which castling moves
  *                    are legal. Ex: If (castlePerms & CASTLE_WQ != 0), then
  *                    white can castle queenside in the current position.
@@ -74,7 +74,7 @@ class Board {
 
 public:
     Board() = default;
-    Board(const std::string& starting_fen);
+    Board(const std::string& fen);
 
     int operator[](int square) const;
     int side() const;
