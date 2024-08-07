@@ -235,7 +235,7 @@ void Engine::checkup() {
  * checkmate or stalemate since not all moves are being generated.
  * 
  */
-int Engine::quiescence(int alpha, int beta, bool max) {
+int Engine::quiescence(int alpha, int beta) {
     ++info.nodes;
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
@@ -245,84 +245,43 @@ int Engine::quiescence(int alpha, int beta, bool max) {
         return 0;
     }
     int eval = board.evaluatePosition();
-    if (max) {
-        assert(board.side() == WHITE);
-        if (eval > alpha) {
-            alpha = eval;
-            if (beta <= alpha) {
-                return beta;
-            }
-        }
-        MoveList moveList(board, true);
-        int numMoves = moveList.numMoves(), legalMoves = 0;
-        int bestMove = INVALID;
-        int oldAlpha = alpha;
-        for (int i = 0; i < numMoves; ++i) {
-            assert((moveList[i] & CAPTURE_FLAG) || (moveList[i] & EN_PASSANT_FLAG));
-            if (board.makeMove(moveList[i])) {
-                eval = quiescence(alpha, beta, false);
-                ++legalMoves;
-                board.undoMove();
-                if (info.stop) {
-                    return 0;
-                }
-                if (eval > alpha) {
-                    alpha = eval;
-                    if (beta <= alpha) {
-#ifndef NDEBUG
-                        info.fhf += legalMoves == 1;
-                        ++info.fh;
-#endif
-                        return beta;
-                    }
-                    bestMove = moveList[i];
-                }
-            }
-        }
-        if (alpha != oldAlpha) {
-            assert(bestMove != INVALID);
-            table.store(board.getPositionKey(), bestMove);
-        }
-        return alpha;
-    }
-    assert(board.side() == BLACK);
-    if (eval < beta) {
-        beta = eval;
+    if (eval > alpha) {
+        alpha = eval;
         if (beta <= alpha) {
-            return alpha;
+            return beta;
         }
     }
     MoveList moveList(board, true);
     int numMoves = moveList.numMoves(), legalMoves = 0;
     int bestMove = INVALID;
-    int oldBeta = beta;
+    int oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
         assert((moveList[i] & CAPTURE_FLAG) || (moveList[i] & EN_PASSANT_FLAG));
         if (board.makeMove(moveList[i])) {
-            eval = quiescence(alpha, beta, true);
+            eval = -quiescence(-beta, -alpha);
             ++legalMoves;
             board.undoMove();
             if (info.stop) {
                 return 0;
             }
-            if (eval < beta) {
-                beta = eval;
+            if (eval > alpha) {
+                alpha = eval;
                 if (beta <= alpha) {
 #ifndef NDEBUG
                     info.fhf += legalMoves == 1;
                     ++info.fh;
 #endif
-                    return alpha;
+                    return beta;
                 }
                 bestMove = moveList[i];
             }
         }
     }
-    if (beta != oldBeta) {
+    if (alpha != oldAlpha) {
         assert(bestMove != INVALID);
         table.store(board.getPositionKey(), bestMove);
     }
-    return beta;
+    return alpha;
 }
 
 
@@ -332,22 +291,24 @@ int Engine::quiescence(int alpha, int beta, bool max) {
  * best move in the current position. Return the evaluation of the current
  * position based on the best sequence of moves for the current side to move.
  * 
- * Alpha is the best possible score for white in the starting position, and
- * beta is the best possible score for black in the starting position. If it is
- * white's move and we find a position with an evaluation > alpha, we update
- * alpha. Similarly, if it is black's move and the evaluation is < beta, we
- * update beta. However, if alpha becomes >= beta, then we've encountered a
- * position that is 'too good' for one side. The other side will have a chance
- * to avoid that path by choosing a different move. If this occurs, the current
- * branch can be pruned.
+ * In normal alpha-beta, alpha is the best possible score for white in the
+ * starting position, and beta is the best possible score for black in the
+ * starting position. If it is white's move and we find a position with an
+ * evaluation > alpha, we update alpha. Similarly, if it is black's move and
+ * the evaluation is < beta, we update beta. However, if alpha becomes >= beta,
+ * then we've encountered a position that is 'too good' for one side. The other
+ * side will have a chance to avoid that path by choosing a different move. If
+ * this occurs, the current branch can be pruned.
  * 
- * The bool 'max' is true if it is currently the maximizing player's move (ie.
- * white's move) and false if it is the minimizing player's (black's) move.
+ * This function uses a variant of alpha-beta called Negamax, where alpha is
+ * the best possible score for the current side to move, and beta is the best
+ * possible score for the other side. For the recursive call, we negate and
+ * swap alpha and beta, and negate the evaluation for the other side to move.
  * 
  */
-int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
+int Engine::alphaBeta(int alpha, int beta, int depth) {
     if (depth <= 0) {
-        return quiescence(alpha, beta, max);
+        return quiescence(alpha, beta);
     }
     ++info.nodes;
     if ((info.nodes & 0xFFF) == 0) {
@@ -358,79 +319,42 @@ int Engine::alphaBeta(int alpha, int beta, int depth, bool max) {
         return 0;
     }
     MoveList moveList(board);
-    int numMoves = moveList.numMoves(), legalMoves = 0;
-    int bestMove = INVALID;
-    int oldAlpha = alpha, oldBeta = beta;
-    if (max) {
-        assert(board.side() == WHITE);
-        for (int i = 0; i < numMoves; ++i) {
-            if (board.makeMove(moveList[i])) {
-                int eval = alphaBeta(alpha, beta, depth - 1, false);
-                ++legalMoves;
-                board.undoMove();
-                if (info.stop) {
-                    return 0;
-                }
-                if (eval > alpha) {
-                    alpha = eval;
-                    if (beta <= alpha) {
-#ifndef NDEBUG
-                        info.fhf += legalMoves == 1;
-                        ++info.fh;
-#endif
-                        return beta;
-                    }
-                    bestMove = moveList[i];
-                }
-            }
-        }
-        if (legalMoves == 0) {
-            uint64 king = board.getPieceBitboard(WHITE_KING);
-            if (board.squaresAttacked(king, BLACK)) {
-                return -(MATE - board.getSearchPly());
-            }
-            return 0;
-        }
-        if (alpha != oldAlpha) {
-            assert(bestMove != INVALID);
-            table.store(board.getPositionKey(), bestMove);
-        }
-        return alpha;
-    }
-    assert(board.side() == BLACK);
+    int numMoves = moveList.numMoves(), legalMoves = 0, bestMove = INVALID;
+    int oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
         if (board.makeMove(moveList[i])) {
-            int eval = alphaBeta(alpha, beta, depth - 1, true);
+            int eval = -alphaBeta(-beta, -alpha, depth - 1);
             ++legalMoves;
             board.undoMove();
             if (info.stop) {
                 return 0;
             }
-            if (eval < beta) {
-                beta = eval;
+            if (eval > alpha) {
+                alpha = eval;
                 if (beta <= alpha) {
 #ifndef NDEBUG
                     info.fhf += legalMoves == 1;
                     ++info.fh;
 #endif
-                    return alpha;
+                    return beta;
                 }
                 bestMove = moveList[i];
             }
         }
     }
     if (legalMoves == 0) {
-        uint64 king = board.getPieceBitboard(BLACK_KING);
-        if (board.squaresAttacked(king, WHITE)) {
-            return MATE - board.getSearchPly();
+        int kingPiece = board.side() == WHITE ? WHITE_KING : BLACK_KING;
+        uint64 king = board.getPieceBitboard(kingPiece);
+        if (board.squaresAttacked(king, board.side() ^ 1)) {
+            return -(MATE - board.getSearchPly());
         }
         return 0;
     }
-    if (beta != oldBeta) {
+    if (alpha != oldAlpha) {
         assert(bestMove != INVALID);
         table.store(board.getPositionKey(), bestMove);
     }
-    return beta;
+    return alpha;
 }
 
 
@@ -455,16 +379,13 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
     setupSearch();
     std::string bestMove;
     for (int depth = 1; depth <= info.maxDepth; ++depth) {
-        int eval = alphaBeta(-INF, INF, depth, board.side() == WHITE);
+        int eval = alphaBeta(-INF, INF, depth);
         if (info.stop) {
             break;
         }
         std::vector<std::string> pvLine = getPVLine(depth);
         assert(pvLine.size() > 0);
         bestMove = pvLine[0];
-        if (board.side() == BLACK) {
-            eval = -eval;
-        }
         if (eval > 20000) {
             int mate = MATE - eval;
             std::cout << "info score mate " << ((mate + 1) / 2);

@@ -165,5 +165,5 @@ int Board::evaluatePosition() const {
         eval -= pieceValue[pieces[square]][square];
         blackPieces &= blackPieces - 1;
     }
-    return eval;
+    return sideToMove == WHITE ? eval : -eval;
 }

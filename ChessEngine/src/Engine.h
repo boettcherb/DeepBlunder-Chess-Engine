@@ -68,7 +68,7 @@ private:
     int parseMoveString(const std::string& moveString) const;
     void setupSearch();
     void checkup();
-    int alphaBeta(int alpha, int beta, int depth, bool max);
-    int quiescence(int alpha, int beta, bool max);
+    int alphaBeta(int alpha, int beta, int depth);
+    int quiescence(int alpha, int beta);
     std::vector<std::string> getPVLine(int depth);
 };
