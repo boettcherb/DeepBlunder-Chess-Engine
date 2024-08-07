@@ -190,7 +190,7 @@ void Engine::setupSearch() {
         info.movestogo = 1;
     }
     if (info.maxDepth == -1) {
-        info.maxDepth = INF;
+        info.maxDepth = 128;
     }
     if (info.time[side] != -1) {
         info.timeSet = true;
