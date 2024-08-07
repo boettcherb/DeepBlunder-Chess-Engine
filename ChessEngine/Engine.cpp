@@ -10,6 +10,7 @@
 static inline constexpr int INF = 1000000000;
 static inline constexpr int MATE = 30000;
 
+
 /*
  * 
  * Constructor for SearchInfo. Initialize all member variables to default
