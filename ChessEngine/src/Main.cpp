@@ -7,7 +7,7 @@
 
 constexpr inline int VERSION_MAJOR = 1;
 constexpr inline int VERSION_MINOR = 0;
-constexpr inline int VERSION_PATCH = 2;
+constexpr inline int VERSION_PATCH = 3;
 
 
 static bool hasNextToken(std::stringstream& ss) {
@@ -53,8 +53,13 @@ static void uci() {
             assert(tokens.size() > 1);
             int index = 1;
             if (tokens[index] == "fen") {
-                assert(tokens.size() > 2);
-                engine.setupBoard(tokens[++index]);
+                assert(tokens.size() >= 8);
+                std::string fen;
+                for (int i = 0; i < 6; ++i) {
+                    fen += tokens[++index] + " ";
+                }
+                fen.pop_back();
+                engine.setupBoard(fen);
             } else {
                 assert(tokens[index] == "startpos");
                 engine.setupBoard();
