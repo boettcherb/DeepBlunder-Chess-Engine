@@ -133,26 +133,26 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Board.h" />
-    <ClInclude Include="Defs.h" />
-    <ClInclude Include="Engine.h" />
-    <ClInclude Include="HashKey.h" />
-    <ClInclude Include="Attack.h" />
-    <ClInclude Include="MoveList.h" />
-    <ClInclude Include="Table.h" />
+    <ClInclude Include="src\Board.h" />
+    <ClInclude Include="src\Defs.h" />
+    <ClInclude Include="src\Engine.h" />
+    <ClInclude Include="src\HashKey.h" />
+    <ClInclude Include="src\Attack.h" />
+    <ClInclude Include="src\MoveList.h" />
+    <ClInclude Include="src\Table.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Board.cpp" />
-    <ClCompile Include="BoardString.cpp" />
-    <ClCompile Include="Defs.cpp" />
-    <ClCompile Include="Engine.cpp" />
-    <ClCompile Include="Evaluate.cpp" />
-    <ClCompile Include="HashKey.cpp" />
-    <ClCompile Include="Attack.cpp" />
-    <ClCompile Include="Main.cpp" />
-    <ClCompile Include="MoveList.cpp" />
-    <ClCompile Include="Perft.cpp" />
-    <ClCompile Include="Table.cpp" />
+    <ClCompile Include="src\Board.cpp" />
+    <ClCompile Include="src\BoardString.cpp" />
+    <ClCompile Include="src\Defs.cpp" />
+    <ClCompile Include="src\Engine.cpp" />
+    <ClCompile Include="src\Evaluate.cpp" />
+    <ClCompile Include="src\HashKey.cpp" />
+    <ClCompile Include="src\Attack.cpp" />
+    <ClCompile Include="src\Main.cpp" />
+    <ClCompile Include="src\MoveList.cpp" />
+    <ClCompile Include="src\Perft.cpp" />
+    <ClCompile Include="src\Table.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
