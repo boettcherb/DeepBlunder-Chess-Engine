@@ -44,11 +44,16 @@
  * pseudo-legal move that is available in the current position. A pseudo-legal
  * move is a move that would normally be legal but on the current board would
  * leave the king in check. These moves are removed later as moves are made and
- * unmade. If we want to only generate capture moves (for Quiescence Search),
- * then 'onlyCaptures' is set to true.
+ * unmade. If the current position was previously searched and a best move was
+ * found, that move can be passed in here and it will receive the highest score
+ * possible, ensuring that it is considered first by the Alpha-Beta algorithm.
+ * This will improve our move ordering, which can lead to more pruning. If we
+ * want to only generate capture moves (for Quiescence Search), then we can set
+ * 'onlyCaptures' to true.
  * 
  */
-MoveList::MoveList(const Board& board, bool onlyCaptures) {
+MoveList::MoveList(const Board& board, int bestMove, bool onlyCaptures) {
+    pvMove = bestMove;
     if (onlyCaptures) {
         generateCaptureMoves(board);
     } else {
@@ -105,8 +110,8 @@ int MoveList::getMove(int from, int to, int cap, int prom, int flags) const {
  * 
  * Given a move that is packed into a 32-bit integer, make sure that it is a
  * valid move. For example, the captured piece cannot be a king, and if the
- * promotion flag is set, then the promoted piece must be present. This is a
- * debug function which should only be called within asserts in debug mode.
+ * promotion flag is set, then the promoted piece must be present, etc. This is
+ * a debug function which should only be called within asserts in debug mode.
  * 
  */
 bool MoveList::validMove(int move) const {
@@ -263,14 +268,33 @@ static inline constexpr int pawnStartScore = 9;
 
 /*
  *
+ * Return true if two moves are the same. When comparing moves, we do not take
+ * into account the move score. This is because the same move can have a
+ * different score in different positions (or even the same position at
+ * different depths) because the move score is updated based on how well a move
+ * does in the Alpha-Beta algorithm.
+ *
+ */
+static bool sameMove(int m1, int m2) {
+    int mask = 0x01FFFFFF;
+    return (m1 & mask) == (m2 & mask);
+}
+
+
+/*
+ *
  * Add a move (and its move score) to the MoveList. The move score is shifted
  * into the correct position and then the move is added to the back of the move
- * list.
+ * list. If the move is the principal variation for this position, set its
+ * score to the highest possible value.
  *
  */
 void MoveList::addMove(int move, int score) {
     assert(validMove(move));
     assert(score > 0 && score < 0x7F);
+    if (sameMove(move, pvMove)) {
+        score = 0x3F;
+    }
     moves.push_back(move | (score << 25));
 }
 
@@ -674,21 +698,6 @@ void MoveList::generateCaptureMoves(const Board& b) {
         return (m1 >> 25) > (m2 >> 25);
     };
     std::sort(moves.begin(), moves.end(), compareMoves);
-}
-
-
-/*
- *
- * Return true if two moves are the same. When comparing moves, we do not take
- * into account the move score. This is because the same move can have a
- * different score in different positions (or even the same position at
- * different depths) because the move score is updated based on how well a move
- * does in the Alpha-Beta algorithm.
- *
- */
-static bool sameMove(int m1, int m2) {
-    int mask = 0x01FFFFFF;
-    return (m1 & mask) == (m2 & mask);
 }
 
 

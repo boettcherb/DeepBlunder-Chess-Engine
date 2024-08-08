@@ -199,14 +199,14 @@ void Engine::setupSearch() {
         info.stopTime = info.startTime + info.time[side] + info.inc[side] - 50;
     }
     board.resetSearchPly();
-#ifndef NDEBUG
+ #ifndef NDEBUG
     info.fh = info.fhf = 0.0f;
     std::cout << "timeSet: " << info.timeSet << ", ";
     std::cout << "time: " << info.time[side] << ", ";
     std::cout << "startTime: " << info.startTime << ", ";
     std::cout << "stopTime: " << info.stopTime << ", ";
     std::cout << "depth: " << info.maxDepth << std::endl;
-#endif
+ #endif
 }
 
 
@@ -251,7 +251,8 @@ int Engine::quiescence(int alpha, int beta) {
             return beta;
         }
     }
-    MoveList moveList(board, true);
+    int storedBestMove = table.retrieve(board.getPositionKey());
+    MoveList moveList(board, storedBestMove, true);
     int numMoves = moveList.numMoves(), legalMoves = 0;
     int bestMove = INVALID;
     int oldAlpha = alpha;
@@ -267,10 +268,10 @@ int Engine::quiescence(int alpha, int beta) {
             if (eval > alpha) {
                 alpha = eval;
                 if (beta <= alpha) {
-#ifndef NDEBUG
+ #ifndef NDEBUG
                     info.fhf += legalMoves == 1;
                     ++info.fh;
-#endif
+ #endif
                     return beta;
                 }
                 bestMove = moveList[i];
@@ -318,7 +319,8 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
         || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
-    MoveList moveList(board);
+    int storedBestMove = table.retrieve(board.getPositionKey());
+    MoveList moveList(board, storedBestMove);
     int numMoves = moveList.numMoves(), legalMoves = 0, bestMove = INVALID;
     int oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
@@ -332,10 +334,10 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
             if (eval > alpha) {
                 alpha = eval;
                 if (beta <= alpha) {
-#ifndef NDEBUG
+ #ifndef NDEBUG
                     info.fhf += legalMoves == 1;
                     ++info.fh;
-#endif
+ #endif
                     return beta;
                 }
                 bestMove = moveList[i];
@@ -402,9 +404,9 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         for (std::string moveString : pvLine) {
             std::cout << moveString << ' ';
         } std::cout << std::endl;
-#ifndef NDEBUG
+ #ifndef NDEBUG
         printf("\tordering: %.2f\n", info.fh == 0.0f ? 0.0f : info.fhf / info.fh);
-#endif
+ #endif
         if (eval > 20000) {
             break;
         }

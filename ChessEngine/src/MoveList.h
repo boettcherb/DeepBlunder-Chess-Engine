@@ -7,9 +7,10 @@ class MoveList {
 
     std::vector<int> moves;
     Board board;
+    int pvMove;
 
 public:
-    MoveList(const Board& b, bool onlyCaptures = false);
+    MoveList(const Board& b, int bestMove = INVALID, bool onlyCaptures = false);
     int operator[](int index) const;
     int numMoves() const;
     void generateMoves(const Board& b);
