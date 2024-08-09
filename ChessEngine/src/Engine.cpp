@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <cstring>
 
 static inline constexpr int INF = 1000000000;
 static inline constexpr int MATE = 30000;
@@ -199,6 +200,8 @@ void Engine::setupSearch() {
         info.stopTime = info.startTime + info.time[side] + info.inc[side] - 50;
     }
     board.resetSearchPly();
+    std::memset(searchHistory, 0, sizeof(searchHistory));
+    std::memset(searchKillers, 0, sizeof(searchKillers));
  #ifndef NDEBUG
     info.fh = info.fhf = 0.0f;
  #endif
@@ -252,13 +255,14 @@ int Engine::quiescence(int alpha, int beta) {
             return beta;
         }
     }
+    MoveList moveList(board, true);
     int storedBestMove = table.retrieve(board.getPositionKey());
-    MoveList moveList(board, storedBestMove, true);
+    moveList.orderMoves(storedBestMove, searchKillers, searchHistory);
     int numMoves = moveList.numMoves(), legalMoves = 0;
     int bestMove = INVALID;
     int oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
-        assert((moveList[i] & CAPTURE_FLAG) || (moveList[i] & EN_PASSANT_FLAG));
+        assert(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG));
         if (board.makeMove(moveList[i])) {
             eval = -quiescence(-beta, -alpha);
             ++legalMoves;
@@ -320,8 +324,9 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
         || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
+    MoveList moveList(board);
     int storedBestMove = table.retrieve(board.getPositionKey());
-    MoveList moveList(board, storedBestMove);
+    moveList.orderMoves(storedBestMove, searchKillers, searchHistory);
     int numMoves = moveList.numMoves(), legalMoves = 0, bestMove = INVALID;
     int oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
@@ -339,9 +344,20 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
                     info.fhf += legalMoves == 1;
                     ++info.fh;
  #endif
+                    if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
+                        int sp = board.getSearchPly();
+                        searchKillers[sp][1] = searchKillers[sp][0];
+                        searchKillers[sp][0] = moveList[i];
+                    }
                     return beta;
                 }
                 bestMove = moveList[i];
+                if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
+                    int to = (bestMove >> 6) & 0x3F;
+                    int piece = board[bestMove & 0x3F];
+                    assert(piece != INVALID);
+                    searchHistory[piece][to] = depth;
+                }
             }
         }
     }

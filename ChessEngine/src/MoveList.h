@@ -7,14 +7,15 @@ class MoveList {
 
     std::vector<int> moves;
     Board board;
-    int pvMove;
 
 public:
-    MoveList(const Board& b, int bestMove = INVALID, bool onlyCaptures = false);
+    MoveList(const Board& b, bool onlyCaptures = false);
     int operator[](int index) const;
     int numMoves() const;
     void generateMoves(const Board& b);
     void generateCaptureMoves(const Board& b);
+    void orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
+                    int searchHistory[NUM_PIECE_TYPES][64]);
     bool moveExists(int move);
 
 private:

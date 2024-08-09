@@ -46,11 +46,34 @@ struct SearchInfo {
 };
 
 
+/*
+ * 
+ * board:         The current position the engine is evaluating
+ * table:         The transposition table: A cache of previously seen positions
+ *                and their best move.
+ * info:          A struct containing information about the current search,
+ *                such as when to stop the search, the maximum depth to search
+ *                to, the time remaining on the clock, and the number of nodes
+ *                visited in the search tree.
+ * searchKillers: Killer move heuristic. Used for ordering non-capture moves in
+ *                the Alpha-Beta algorithm. When a non-capture move causes a
+ *                beta cutoff, store the move indexed by search depth (store 2
+                  per search depth). If we are able to play the same move at
+                  the same depth, order it above all other non-capture moves.
+ * searchHistory: History heuristic. Used for ordering non-capture moves
+ *                in the Alpha-Beta algorithm. When a non-capture move improves
+ *                alpha, store the piece type and the 'to' square. If a similar
+ *                move occurs, order it ahead of all other non-capture moves
+ *                (but below killer moves).
+ * 
+ */
 class Engine {
 
     Board board;
     TranspositionTable table;
     SearchInfo info;
+    int searchHistory[NUM_PIECE_TYPES][64];
+    int searchKillers[MAX_SEARCH_DEPTH][2];
 
 public:
     Engine();

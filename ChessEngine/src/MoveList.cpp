@@ -18,7 +18,7 @@
  * 0000 0000 0100 0000 0000 0000 0000 0000   1 bit for the castle flag
  * 0000 0000 1000 0000 0000 0000 0000 0000   1 bit for the en passant flag
  * 0000 0001 0000 0000 0000 0000 0000 0000   1 bit for the pawn start flag
- * 1111 1110 0000 0000 0000 0000 0000 0000   7 bits for the move score
+ * 0111 1110 0000 0000 0000 0000 0000 0000   6 bits for the move score
  * 
  * The piece that is moving originated on the 'from' square and is moving to
  * the 'to' square. If the move is a capture move, the captured piece is
@@ -38,22 +38,20 @@
  *****************************************************************************/
 
 
+static inline constexpr int MAX_MOVE_SCORE = 63;
+
+
 /*
  * 
  * MoveList constructor. Given a board, fill the movelist with every legal and
  * pseudo-legal move that is available in the current position. A pseudo-legal
  * move is a move that would normally be legal but on the current board would
  * leave the king in check. These moves are removed later as moves are made and
- * unmade. If the current position was previously searched and a best move was
- * found, that move can be passed in here and it will receive the highest score
- * possible, ensuring that it is considered first by the Alpha-Beta algorithm.
- * This will improve our move ordering, which can lead to more pruning. If we
- * want to only generate capture moves (for Quiescence Search), then we can set
- * 'onlyCaptures' to true.
+ * unmade. If we want to only generate capture moves (for Quiescence Search),
+ * then we can set 'onlyCaptures' to true.
  * 
  */
-MoveList::MoveList(const Board& board, int bestMove, bool onlyCaptures) {
-    pvMove = bestMove;
+MoveList::MoveList(const Board& board, bool onlyCaptures) {
     if (onlyCaptures) {
         generateCaptureMoves(board);
     } else {
@@ -231,39 +229,42 @@ bool MoveList::validMove(int move) const {
  * the move is actually better. For example, a move where a white knight
  * captures a black queen has a higher move score than a move where a white
  * knight captures a black rook:
- *      captureScore[WHITE_KNIGHT][BLACK_QUEEN] == 40
- *      captureScore[WHITE_KNIGHT][BLACK_ROOK] == 33
+ *      captureScore[WHITE_KNIGHT][BLACK_QUEEN] == 61
+ *      captureScore[WHITE_KNIGHT][BLACK_ROOK] == 54
  * moveScore[] is for normal moves (not captures, promotions, castling, etc.).
- * For example, a pawn move (moveScore[WHITE_PAWN] == 8) is prioritized over a
- * king move (moveScore[WHITE_KING] == 3).
+ * For example, a pawn move (moveScore[WHITE_PAWN] == 6) is prioritized over a
+ * king move (moveScore[WHITE_KING] == 1).
  * promotionScore[] is for promotion moves. A promotion to a white queen
- * (promotionScore[WHITE_QUEEN] == 42) is prioritized over a promotion to a
- * white rook (promotionScore[WHITE_ROOK] == 2).
+ * (promotionScore[WHITE_QUEEN] == 62) is prioritized over a promotion to a
+ * white rook (promotionScore[WHITE_ROOK] == 59).
  *
  */
 static inline constexpr int captureScore[NUM_PIECE_TYPES][NUM_PIECE_TYPES] = {
-    {  0,  0,  0,  0,  0,  0, 24, 34, 35, 38, 41,  0 },
-    {  0,  0,  0,  0,  0,  0, 18, 27, 28, 33, 40,  0 },
-    {  0,  0,  0,  0,  0,  0, 17, 25, 26, 32, 39,  0 },
-    {  0,  0,  0,  0,  0,  0, 16, 22, 23, 29, 37,  0 },
-    {  0,  0,  0,  0,  0,  0, 15, 19, 20, 21, 30,  0 },
-    {  0,  0,  0,  0,  0,  0, 11, 12, 13, 14, 36,  0 },
-    { 24, 34, 35, 38, 41,  0,  0,  0,  0,  0,  0,  0 },
-    { 18, 27, 28, 33, 40,  0,  0,  0,  0,  0,  0,  0 },
-    { 17, 25, 26, 32, 39,  0,  0,  0,  0,  0,  0,  0 },
-    { 16, 22, 23, 29, 37,  0,  0,  0,  0,  0,  0,  0 },
-    { 15, 19, 20, 21, 30,  0,  0,  0,  0,  0,  0,  0 },
-    { 11, 12, 13, 14, 36,  0,  0,  0,  0,  0,  0,  0 },
+    {  0,  0,  0,  0,  0,  0, 46, 55, 56, 59, 62,  0 },
+    {  0,  0,  0,  0,  0,  0, 40, 49, 50, 54, 61,  0 },
+    {  0,  0,  0,  0,  0,  0, 39, 47, 48, 53, 60,  0 },
+    {  0,  0,  0,  0,  0,  0, 38, 44, 45, 51, 58,  0 },
+    {  0,  0,  0,  0,  0,  0, 37, 41, 42, 43, 52,  0 },
+    {  0,  0,  0,  0,  0,  0, 34, 35, 36, 36, 57,  0 },
+    { 46, 55, 56, 59, 62,  0,  0,  0,  0,  0,  0,  0 },
+    { 40, 49, 50, 54, 61,  0,  0,  0,  0,  0,  0,  0 },
+    { 39, 47, 48, 53, 60,  0,  0,  0,  0,  0,  0,  0 },
+    { 38, 44, 45, 51, 58,  0,  0,  0,  0,  0,  0,  0 },
+    { 37, 41, 42, 43, 52,  0,  0,  0,  0,  0,  0,  0 },
+    { 34, 35, 36, 36, 57,  0,  0,  0,  0,  0,  0,  0 },
 };
 static inline constexpr int moveScore[NUM_PIECE_TYPES] = {
-    8, 7, 6, 5, 4, 3, 8, 7, 6, 5, 4, 3
+    6, 5, 4, 3, 2, 1, 6, 5, 4, 3, 2, 1,
 };
 static inline constexpr int promotionScore[NUM_PIECE_TYPES] = {
-    0, 31, 1, 2, 42, 0, 0, 31, 1, 2, 42, 0,
+    0, 55, 56, 59, 62, 0, 0, 55, 56, 59, 62, 0,
 };
-static inline constexpr int enPassantScore = 24;
-static inline constexpr int castleScore = 10;
-static inline constexpr int pawnStartScore = 9;
+static inline constexpr int enPassantScore = 46;
+static inline constexpr int castleScore = 8;
+static inline constexpr int pawnStartScore = 7;
+static inline constexpr int killerScore1 = 33;
+static inline constexpr int killerScore2 = 32;
+static inline constexpr int historyScore = 9;
 
 
 /*
@@ -276,7 +277,7 @@ static inline constexpr int pawnStartScore = 9;
  *
  */
 static bool sameMove(int m1, int m2) {
-    int mask = 0x01FFFFFF;
+    constexpr int mask = 0x01FFFFFF;
     return (m1 & mask) == (m2 & mask);
 }
 
@@ -285,16 +286,12 @@ static bool sameMove(int m1, int m2) {
  *
  * Add a move (and its move score) to the MoveList. The move score is shifted
  * into the correct position and then the move is added to the back of the move
- * list. If the move is the principal variation for this position, set its
- * score to the highest possible value.
+ * list.
  *
  */
 void MoveList::addMove(int move, int score) {
     assert(validMove(move));
-    assert(score > 0 && score < 0x7F);
-    if (sameMove(move, pvMove)) {
-        score = 0x3F;
-    }
+    assert(score > 0 && score <= MAX_MOVE_SCORE);
     moves.push_back(move | (score << 25));
 }
 
@@ -343,10 +340,10 @@ void MoveList::addPawnMove(int move, int score) {
         int bishop = pieceType[board.side()][BISHOP];
         int rook = pieceType[board.side()][ROOK];
         int queen = pieceType[board.side()][QUEEN];
-        addMove(move | (knight << 16), score + promotionScore[KNIGHT]);
-        addMove(move | (bishop << 16), score + promotionScore[BISHOP]);
-        addMove(move | (rook << 16), score + promotionScore[ROOK]);
-        addMove(move | (queen << 16), score + promotionScore[QUEEN]);
+        addMove(move | (knight << 16), promotionScore[KNIGHT]);
+        addMove(move | (bishop << 16), promotionScore[BISHOP]);
+        addMove(move | (rook << 16), promotionScore[ROOK]);
+        addMove(move | (queen << 16), promotionScore[QUEEN]);
     } else {
         addMove(move, score);
     }
@@ -563,10 +560,6 @@ void MoveList::generateMoves(const Board& b) {
     }
     uint64 kingAttacks = attack::getKingAttacks(king) & ~samePieces;
     generatePieceMoves(getLSB(king), kingAttacks);
-    auto compareMoves = [](const int& m1, const int& m2) -> bool {
-        return (m1 >> 25) > (m2 >> 25);
-    };
-    std::sort(moves.begin(), moves.end(), compareMoves);
 }
 
 
@@ -694,6 +687,41 @@ void MoveList::generateCaptureMoves(const Board& b) {
     }
     uint64 kingAttacks = attack::getKingAttacks(king) & enemyPieces;
     generatePieceMoves(getLSB(king), kingAttacks);
+}
+
+
+/*
+ *
+ * Sort the moves based on their move score. If the current position was
+ * previously searched and a best move was found, that move can be passed in
+ * here and it will receive the highest score possible, ensuring that it is
+ * considered first by the Alpha-Beta algorithm. If there are any non-capture
+ * moves that match those stored by the killer move heuristic or the search
+ * history heuristic, increase their scores as well. This will improve our move
+ * ordering, which can lead to more pruning.
+ *
+ */
+void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
+                          int searchHistory[NUM_PIECE_TYPES][64]) {
+    for (int& move : moves) {
+        if (sameMove(move, bestMove)) {
+            move |= 0x7E000000;
+        }
+        else if (sameMove(move, killers[board.getSearchPly()][0])) {
+            move = (move & 0x01FFFFFF) | (killerScore1 << 25);
+        }
+        else if (sameMove(move, killers[board.getSearchPly()][1])) {
+            move = (move & 0x01FFFFFF) | (killerScore2 << 25);
+        }
+        else if (!(move & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
+            int piece = board[move & 0x3F];
+            int to = (move >> 6) & 0x3F;
+            if (searchHistory[piece][to] > 0) {
+                int newScore = historyScore + searchHistory[piece][to];
+                move = (move & 0x01FFFFFF) | (newScore << 25);
+            }
+        }
+    }
     auto compareMoves = [](const int& m1, const int& m2) -> bool {
         return (m1 >> 25) > (m2 >> 25);
     };
