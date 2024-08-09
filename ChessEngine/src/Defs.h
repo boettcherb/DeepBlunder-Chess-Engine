@@ -42,6 +42,7 @@ enum Square {
 
 inline constexpr int INVALID = -1;
 inline constexpr int NUM_PIECE_TYPES = 12;
+inline constexpr int MAX_SEARCH_DEPTH = 128;
 inline constexpr int MOVE_FLAGS = 0x1F00000;
 inline constexpr int CAPTURE_FLAG = 0x0100000;
 inline constexpr int PROMOTION_FLAG = 0x0200000;
