@@ -201,12 +201,13 @@ void Engine::setupSearch() {
     board.resetSearchPly();
  #ifndef NDEBUG
     info.fh = info.fhf = 0.0f;
+ #endif
     std::cout << "timeSet: " << info.timeSet << ", ";
+    std::cout << "inc: " << info.inc[side] << ", ";
     std::cout << "time: " << info.time[side] << ", ";
     std::cout << "startTime: " << info.startTime << ", ";
     std::cout << "stopTime: " << info.stopTime << ", ";
     std::cout << "depth: " << info.maxDepth << std::endl;
- #endif
 }
 
 
