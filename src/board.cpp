@@ -1,7 +1,7 @@
-#include "Board.h"
-#include "Defs.h"
-#include "HashKey.h"
-#include "Attack.h"
+#include "board.h"
+#include "defs.h"
+#include "hashkey.h"
+#include "attack.h"
 #include <iostream>
 #include <string>
 #include <cstring>

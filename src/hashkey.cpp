@@ -1,5 +1,5 @@
-#include "HashKey.h"
-#include "Defs.h"
+#include "hashkey.h"
+#include "defs.h"
 #include <random>
 
 namespace hashkey {

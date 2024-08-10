@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Board.h"
+#include "board.h"
 #include <vector>
 
 class MoveList {

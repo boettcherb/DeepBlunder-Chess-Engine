@@ -1,8 +1,8 @@
-#include "Engine.h"
-#include "Board.h"
-#include "MoveList.h"
-#include "HashKey.h"
-#include "Attack.h"
+#include "engine.h"
+#include "board.h"
+#include "movelist.h"
+#include "hashkey.h"
+#include "attack.h"
 #include <string>
 #include <vector>
 #include <iostream>

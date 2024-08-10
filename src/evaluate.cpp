@@ -1,5 +1,5 @@
-#include "Defs.h"
-#include "Board.h"
+#include "defs.h"
+#include "board.h"
 
 
 /*

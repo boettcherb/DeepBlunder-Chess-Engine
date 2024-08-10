@@ -1,7 +1,7 @@
-#include "MoveList.h"
-#include "Defs.h"
-#include "Board.h"
-#include "Attack.h"
+#include "movelist.h"
+#include "defs.h"
+#include "board.h"
+#include "attack.h"
 #include <iostream>
 #include <algorithm>
 

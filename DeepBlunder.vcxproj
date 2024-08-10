@@ -21,10 +21,9 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{677b8882-a2bc-465f-9d6c-dc6abe1a4dcd}</ProjectGuid>
-    <RootNamespace>ChessEngine</RootNamespace>
+    <ProjectGuid>{a0f9fbf2-035d-451b-9e01-a25c6ad0e49a}</ProjectGuid>
+    <RootNamespace>DeepBlunder</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>DeepBlunderChessEngine</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -133,29 +132,32 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="src\Board.h" />
-    <ClInclude Include="src\Defs.h" />
-    <ClInclude Include="src\Engine.h" />
-    <ClInclude Include="src\HashKey.h" />
-    <ClInclude Include="src\Attack.h" />
-    <ClInclude Include="src\MoveList.h" />
-    <ClInclude Include="src\Table.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Board.cpp" />
-    <ClCompile Include="src\BoardString.cpp" />
-    <ClCompile Include="src\Defs.cpp" />
-    <ClCompile Include="src\Engine.cpp" />
-    <ClCompile Include="src\Evaluate.cpp" />
-    <ClCompile Include="src\HashKey.cpp" />
-    <ClCompile Include="src\Attack.cpp" />
-    <ClCompile Include="src\Main.cpp" />
-    <ClCompile Include="src\MoveList.cpp" />
-    <ClCompile Include="src\Perft.cpp" />
-    <ClCompile Include="src\Table.cpp" />
-  </ItemGroup>
-  <ItemGroup>
+    <None Include=".gitattributes" />
+    <None Include=".gitignore" />
+    <None Include="README.md" />
     <None Include="src\Makefile" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\attack.cpp" />
+    <ClCompile Include="src\board.cpp" />
+    <ClCompile Include="src\boardString.cpp" />
+    <ClCompile Include="src\defs.cpp" />
+    <ClCompile Include="src\engine.cpp" />
+    <ClCompile Include="src\evaluate.cpp" />
+    <ClCompile Include="src\hashkey.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\movelist.cpp" />
+    <ClCompile Include="src\perft.cpp" />
+    <ClCompile Include="src\table.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\attack.h" />
+    <ClInclude Include="src\board.h" />
+    <ClInclude Include="src\defs.h" />
+    <ClInclude Include="src\engine.h" />
+    <ClInclude Include="src\hashkey.h" />
+    <ClInclude Include="src\movelist.h" />
+    <ClInclude Include="src\table.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

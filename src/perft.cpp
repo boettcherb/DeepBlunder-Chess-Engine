@@ -1,7 +1,7 @@
-#include "Defs.h"
-#include "Engine.h"
-#include "Board.h"
-#include "MoveList.h"
+#include "defs.h"
+#include "engine.h"
+#include "board.h"
+#include "movelist.h"
 #include <iostream>
 #include <vector>
 #include <array>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Defs.h"
+#include "defs.h"
 
 namespace attack {
 

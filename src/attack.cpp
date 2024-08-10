@@ -1,5 +1,5 @@
-#include "Attack.h"
-#include "Defs.h"
+#include "attack.h"
+#include "defs.h"
 
 namespace attack {
 

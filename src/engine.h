@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Board.h"
-#include "Table.h"
+#include "board.h"
+#include "table.h"
 #include <string>
 #include <vector>
 
