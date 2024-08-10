@@ -140,7 +140,7 @@
   <ItemGroup>
     <ClCompile Include="src\attack.cpp" />
     <ClCompile Include="src\board.cpp" />
-    <ClCompile Include="src\boardString.cpp" />
+    <ClCompile Include="src\boardstring.cpp" />
     <ClCompile Include="src\defs.cpp" />
     <ClCompile Include="src\engine.cpp" />
     <ClCompile Include="src\evaluate.cpp" />
