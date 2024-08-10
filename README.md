@@ -14,7 +14,7 @@ On windows, you can open DeepBlunderChessEngine.sln with Visual Studio. Alternat
 
 ```bash
 git clone https://github.com/boettcherb/DeepBlunder-Chess-Engine.git
-cd ChessEngine/src
+cd src
 make release
 ./deepblunder
 ```
