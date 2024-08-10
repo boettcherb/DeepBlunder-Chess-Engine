@@ -154,6 +154,9 @@
     <ClCompile Include="src\Perft.cpp" />
     <ClCompile Include="src\Table.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="src\Makefile" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
