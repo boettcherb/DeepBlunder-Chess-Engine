@@ -58,8 +58,8 @@ struct SearchInfo {
  * searchKillers: Killer move heuristic. Used for ordering non-capture moves in
  *                the Alpha-Beta algorithm. When a non-capture move causes a
  *                beta cutoff, store the move indexed by search depth (store 2
-                  per search depth). If we are able to play the same move at
-                  the same depth, order it above all other non-capture moves.
+ *                per search depth). If we are able to play the same move at
+ *                the same depth, order it above all other non-capture moves.
  * searchHistory: History heuristic. Used for ordering non-capture moves
  *                in the Alpha-Beta algorithm. When a non-capture move improves
  *                alpha, store the piece type and the 'to' square. If a similar
