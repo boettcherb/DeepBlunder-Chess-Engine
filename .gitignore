@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
+# Executables / output from the Makefile
+deepblunder
+deepblunder_debug
+build/
+
 # User-specific files
 *.rsuser
 *.suo
