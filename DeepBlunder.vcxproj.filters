@@ -19,6 +19,7 @@
     <None Include=".gitignore" />
     <None Include="README.md" />
     <None Include="src\Makefile" />
+    <None Include="CHANGELOG.md" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\attack.cpp">

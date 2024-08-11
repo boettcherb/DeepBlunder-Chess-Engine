@@ -134,6 +134,7 @@
   <ItemGroup>
     <None Include=".gitattributes" />
     <None Include=".gitignore" />
+    <None Include="CHANGELOG.md" />
     <None Include="README.md" />
     <None Include="src\Makefile" />
   </ItemGroup>
