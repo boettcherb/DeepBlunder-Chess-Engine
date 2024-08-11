@@ -160,6 +160,9 @@
     <ClInclude Include="src\movelist.h" />
     <ClInclude Include="src\table.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Image Include="img\deepblunder.png" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

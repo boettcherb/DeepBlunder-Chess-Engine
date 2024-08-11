@@ -1,3 +1,7 @@
+<div style="text-align: center;">
+    <img src="img/deepblunder.png" alt="Deep Blunder Logo" width="200"/>
+</div>
+
 # DeepBlunder Chess Engine
 
 [![Release][release-badge]][releases-link]
