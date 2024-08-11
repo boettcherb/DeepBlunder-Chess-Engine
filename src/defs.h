@@ -82,9 +82,6 @@ inline constexpr char pieceChar[NUM_PIECE_TYPES] = {
     'p', 'n', 'b', 'r', 'q', 'k', 'p', 'n', 'b', 'r', 'q', 'k'
 };
 
-inline const std::string INITIAL_POSITION =
-    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
 int getLSB(uint64 bitboard);
 int getMSB(uint64 bitboard);
 int countBits(uint64 bitboard);
