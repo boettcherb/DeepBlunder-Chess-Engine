@@ -1,5 +1,6 @@
 #include "defs.h"
 #include <chrono>
+#include <bit>
 
 
 /*
@@ -11,20 +12,7 @@
  */
 int getLSB(uint64 bitboard) {
     assert(bitboard != 0);
-#if defined(COMPILER_GCC)
-    return __builtin_ctzll(bitboard);
-#elif defined(COMPILER_MSVS)
-    unsigned long index;
-    _BitScanForward64(&index, bitboard);
-    return static_cast<int>(index);
-#else
-    int index = 0;
-    while (!(bitboard & 0x1)) {
-        bitboard >>= 1;
-        ++index;
-    }
-    return index;
-#endif
+    return std::countr_zero(bitboard);
 }
 
 
@@ -37,20 +25,7 @@ int getLSB(uint64 bitboard) {
  */
 int getMSB(uint64 bitboard) {
     assert(bitboard != 0);
-#if defined(COMPILER_GCC)
-    return 63 - __builtin_clzll(bitboard);
-#elif defined(COMPILER_MSVS)
-    unsigned long index;
-    _BitScanReverse64(&index, bitboard);
-    return static_cast<int>(index);
-#else
-    int index = 63;
-    while (!(bitboard & 0x8000000000000000ULL)) {
-        bitboard <<= 1;
-        --index;
-    }
-    return index;
-#endif
+    return 63 - std::countl_zero(bitboard);
 }
 
 
@@ -61,18 +36,7 @@ int getMSB(uint64 bitboard) {
  *
  */
 int countBits(uint64 bitboard) {
-#if defined(COMPILER_GCC)
-    return __builtin_popcountll(bitboard);
-#elif defined(COMPILER_MSVS)
-    return static_cast<int>(__popcnt64(bitboard));
-#else
-    int bits = 0;
-    while (bitboard) {
-        bitboard &= bitboard - 1;
-        ++bits;
-    }
-    return bits;
-#endif
+    return std::popcount(bitboard);
 }
 
 

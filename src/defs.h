@@ -1,15 +1,6 @@
 #pragma once
 
 #include <string>
-
-#undef COMPILER_MSVS
-#undef COMPILER_GCC
-#if defined(_MSC_VER)
-#define COMPILER_MSVS
-#elif defined(__GNUC__)
-#define COMPILER_GCC
-#endif
-
 #include <cassert>
 #if !defined(NDEBUG)
 #include <iostream>
