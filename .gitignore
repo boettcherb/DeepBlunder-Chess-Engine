@@ -4,8 +4,8 @@
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
 # Executables / output from the Makefile
-deepblunder
-deepblunder_debug
+deepblunder_v*_linux
+deepblunder_debug_v*_linux
 build/
 
 # User-specific files

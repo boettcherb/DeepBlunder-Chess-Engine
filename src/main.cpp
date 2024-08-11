@@ -5,9 +5,7 @@
 #include <sstream>
 #include <chrono>
 
-constexpr inline int VERSION_MAJOR = 1;
-constexpr inline int VERSION_MINOR = 1;
-constexpr inline int VERSION_PATCH = 7;
+constexpr auto VERSION = "v1.1.7";
 
 
 static bool hasNextToken(std::stringstream& ss) {
@@ -25,8 +23,7 @@ static void uci() {
     Engine engine;
     bool initialized = false;
     std::thread searchThread;
-    std::cout << "id name DeepBlunder v" << VERSION_MAJOR <<
-        "." << VERSION_MINOR << "." << VERSION_PATCH << std::endl;
+    std::cout << "id name DeepBlunder " << VERSION << std::endl;
     std::cout << "id author Brandon Boettcher" << std::endl;
     std::cout << "uciok" << std::endl;
     while (true) {

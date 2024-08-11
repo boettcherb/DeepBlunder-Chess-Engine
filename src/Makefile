@@ -3,9 +3,14 @@
 .DEFAULT_GOAL := help
 .PHONY: help release debug clean
 
+# Extract version from main.cpp
+VERSION := $(shell grep 'constexpr auto VERSION =' main.cpp | sed 's/constexpr auto VERSION = "//' | sed 's/";$$//')
+
 build_flags = -std=c++20 -Wall -Wextra -Werror -march=native
 cpp_files = $(wildcard *.cpp)
 CPP = g++
+exe_release = deepblunder_$(VERSION)_linux
+exe_debug = deepblunder_debug_$(VERSION)_linux
 
 # Build directories
 release_dir = build/release
@@ -21,7 +26,7 @@ debug_dep_files = $(patsubst %.cpp, $(debug_dir)/%.d, $(cpp_files))
 # Release target
 release: build_flags += -Ofast -DNDEBUG
 release: $(release_obj_files)
-	$(CPP) $(release_obj_files) -o deepblunder $(build_flags) -flto -s
+	$(CPP) $(release_obj_files) -o $(exe_release) $(build_flags) -flto -s
 -include $(release_dep_files)
 $(release_dir)/%.o: %.cpp | $(release_dir)
 	$(CPP) -c $< -o $@ $(build_flags) -MMD -MF $(@:.o=.d)
@@ -29,9 +34,8 @@ $(release_dir)/%.d: # prevent catchall target from catching .d files
 
 # Debug target
 debug: build_flags += -Og -g -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC -fsanitize=address -fsanitize=undefined -fno-sanitize-recover
-debug: __deepblunder_debug
-__deepblunder_debug: $(debug_obj_files)
-	$(CPP) $(debug_obj_files) -o deepblunder_debug $(build_flags)
+debug: $(debug_obj_files)
+	$(CPP) $(debug_obj_files) -o $(exe_debug) $(build_flags)
 -include $(debug_dep_files)
 $(debug_dir)/%.o: %.cpp | $(debug_dir)
 	$(CPP) -c $< -o $@ $(build_flags) -MMD -MF $(@:.o=.d)
@@ -39,7 +43,7 @@ $(debug_dir)/%.d: # prevent catchall target from catching .d files
 
 # Clean target
 clean:
-	rm -rf deepblunder deepblunder_debug $(release_dir) $(debug_dir)
+	rm -rf $(exe_release) $(exe_debug) $(release_dir) $(debug_dir)
 
 # help target
 help:
