@@ -67,7 +67,7 @@ static bool containsOnly(const std::string& str, const std::string& chars) {
 
 /*
  *
- * Set up a chessboard to the position given by the FEN string. Forsyth–Edwards
+ * Set up a chessboard to the position given by the FEN string. Forsythâ€“Edwards
  * Notation (FEN) is standard notation for describing a particular board
  * position of a chess game. A FEN string has 6 parts: (1) the piece layout,
  * (2) side to move, (3) castling permissions for both sides, (4) en passant
