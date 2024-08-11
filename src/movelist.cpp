@@ -705,7 +705,7 @@ void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
                           int searchHistory[NUM_PIECE_TYPES][64]) {
     for (int& move : moves) {
         if (sameMove(move, bestMove)) {
-            move |= 0x7E000000;
+            move |= MAX_MOVE_SCORE << 25;
         }
         else if (sameMove(move, killers[board.getSearchPly()][0])) {
             move = (move & 0x01FFFFFF) | (killerScore1 << 25);
