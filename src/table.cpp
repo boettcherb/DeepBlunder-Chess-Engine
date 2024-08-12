@@ -3,11 +3,13 @@
 
 /*
  *
- * Initialize the transposition table with 'numEntries' entries. The default
- * size is 0x20000, or around 130,000.
+ * Initialize the transposition table with a size of 'sizeInMB' megabytes. The
+ * default size is 128 MB, but this can be changed through the UCI protocol's
+ * "setoption" command.
  *
  */
-void TranspositionTable::initialize(int numEntries) {
+void TranspositionTable::initialize(int sizeInMB) {
+    uint64 numEntries = (sizeInMB * 0x100000ULL) / sizeof(Entry);
     table = std::vector<Entry>(numEntries);
 }
 
