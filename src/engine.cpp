@@ -41,20 +41,38 @@ SearchInfo::SearchInfo() {
  */
 Engine::Engine() {
     static_assert(sizeof(uint64) == 8);
+    initialized = false;
 }
 
 
 /*
  * 
- * Initialize the engine. Create the hash keys for Zobrist hashing, the bishop
- * and rook sliding piece attack tables, and the transposition table.
+ * Initialize the engine, if it is not already initialized. Create the hash
+ * keys for Zobrist hashing, the bishop and rook sliding piece attack tables,
+ * and the transposition table.
  * 
  */
 void Engine::initialize() {
-    hashkey::initHashKeys();
-    attack::initializeBishopAttackTable();
-    attack::initializeRookAttackTable();
-    table.initialize();
+    if (!initialized) {
+        hashkey::initHashKeys();
+        attack::initializeBishopAttackTable();
+        attack::initializeRookAttackTable();
+        table.initialize(hashTableSize);
+        initialized = true;
+    }
+}
+
+
+/*
+ * 
+ * Set the Transposition table to a certain size in MB. This is called whenever
+ * the engine receives a "setoption name Hash ..." command from the GUI.
+ * 
+ */
+void Engine::setHashTableSize(int sizeInMB) {
+    assert(sizeInMB > 0 && sizeInMB <= 4096);
+    hashTableSize = sizeInMB;
+    initialized = false;
 }
 
 
@@ -183,6 +201,7 @@ void Engine::stopSearch() {
  * 
  */
 void Engine::setupSearch() {
+    initialize();
     info.nodes = 0;
     info.stop = false;
     info.startTime = currentTime();

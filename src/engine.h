@@ -65,6 +65,9 @@ struct SearchInfo {
  *                alpha, store the piece type and the 'to' square. If a similar
  *                move occurs, order it ahead of all other non-capture moves
  *                (but below killer moves).
+ * initialized:   A boolean set to true if the engine has been initialized (the
+ *                transposition table, sliding piece attack tables, and zobrist
+ *                hash keys have been created).
  * 
  */
 class Engine {
@@ -74,11 +77,16 @@ class Engine {
     SearchInfo info;
     int searchHistory[NUM_PIECE_TYPES][64];
     int searchKillers[MAX_SEARCH_DEPTH][2];
+    bool initialized;
+
+    // UCI options
+    int hashTableSize = 128;
 
 public:
     Engine();
 
     void initialize();
+    void setHashTableSize(int sizeInMB);
     bool setupBoard(const std::string& fen = START_POS);
     void makeMoves(const std::vector<std::string>& moves);
     void searchPosition(const SearchInfo& searchInfo);
