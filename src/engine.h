@@ -4,6 +4,8 @@
 #include "table.h"
 #include <string>
 #include <vector>
+#include <fstream>
+#include <mutex>
 
 
 /*
@@ -77,20 +79,25 @@ class Engine {
     SearchInfo info;
     int searchHistory[NUM_PIECE_TYPES][64];
     int searchKillers[MAX_SEARCH_DEPTH][2];
-    bool initialized;
+    std::ofstream logger;
+    std::mutex logger_mutex;
 
     // UCI options
     int hashTableSize = 128;
+    std::string logFile = "log.txt";
 
 public:
     Engine();
 
-    void initialize();
     void setHashTableSize(int sizeInMB);
+    void setLogFile(const std::string& path);
+
+    void initialize();
     bool setupBoard(const std::string& fen = START_POS);
     void makeMoves(const std::vector<std::string>& moves);
     void searchPosition(const SearchInfo& searchInfo);
     void stopSearch();
+    void log(const std::string& message);
 
     // Perft.cpp
     void runPerftTests() const;

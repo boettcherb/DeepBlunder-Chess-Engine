@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <cstring>
 
 static inline constexpr int INF = 1000000000;
@@ -41,25 +42,27 @@ SearchInfo::SearchInfo() {
  */
 Engine::Engine() {
     static_assert(sizeof(uint64) == 8);
-    initialized = false;
+    table.setSize(hashTableSize);
+    logger_mutex.lock();
+    logger.open(logFile, std::ios::out | std::ios::app);
+    logger_mutex.unlock();
+    log("\n\n\n");
 }
 
 
 /*
  * 
- * Initialize the engine, if it is not already initialized. Create the hash
- * keys for Zobrist hashing, the bishop and rook sliding piece attack tables,
- * and the transposition table.
+ * Initialize the engine. Create the hash keys for Zobrist hashing, create the
+ * bishop and rook attack tables, and initialize the transposition table. This
+ * function can be called multiple times and it will have no effect after the
+ * first time unless a uci option has changed.
  * 
  */
 void Engine::initialize() {
-    if (!initialized) {
-        hashkey::initHashKeys();
-        attack::initializeBishopAttackTable();
-        attack::initializeRookAttackTable();
-        table.initialize(hashTableSize);
-        initialized = true;
-    }
+    hashkey::initHashKeys();
+    attack::initializeBishopAttackTable();
+    attack::initializeRookAttackTable();
+    table.initialize();
 }
 
 
@@ -72,7 +75,44 @@ void Engine::initialize() {
 void Engine::setHashTableSize(int sizeInMB) {
     assert(sizeInMB > 0 && sizeInMB <= 4096);
     hashTableSize = sizeInMB;
-    initialized = false;
+    log("Setting hash table size to " + std::to_string(sizeInMB) + " MB");
+}
+
+
+/*
+ * 
+ * Set the path to the log file. If the file path is the value "<empty>", then
+ * disable logging. This function is called whenever we receive a "setoption
+ * name Log File ..." command from the GUI.
+ * 
+ */
+void Engine::setLogFile(const std::string& path) {
+    assert(!path.empty());
+    if (path == logFile) {
+        return;
+    }
+    logFile = path;
+    logger_mutex.lock();
+    logger.close();
+    if (path != "<empty>") {
+        logger.open(logFile, std::ios::out | std::ios::app);
+    }
+    logger_mutex.unlock();
+    log("Setting log file path to " + logFile);
+}
+
+
+/*
+ * 
+ * Output a message to the log file, if there is one open.
+ * 
+ */
+void Engine::log(const std::string& message) {
+    logger_mutex.lock();
+    if (logger.is_open()) {
+        logger << message << std::endl;
+    }
+    logger_mutex.unlock();
 }
 
 
@@ -224,12 +264,14 @@ void Engine::setupSearch() {
  #ifndef NDEBUG
     info.fh = info.fhf = 0.0f;
  #endif
-    std::cout << "timeSet: " << info.timeSet << ", ";
-    std::cout << "inc: " << info.inc[side] << ", ";
-    std::cout << "time: " << info.time[side] << ", ";
-    std::cout << "startTime: " << info.startTime << ", ";
-    std::cout << "stopTime: " << info.stopTime << ", ";
-    std::cout << "depth: " << info.maxDepth << std::endl;
+    std::string time_info = "timeSet: " + std::to_string(info.timeSet) + ", ";
+    time_info += "inc: " + std::to_string(info.inc[side]) + ", ";
+    time_info += "time: " + std::to_string(info.time[side]) + ", ";
+    time_info += "startTime: " + std::to_string(info.startTime) + ", ";
+    time_info += "stopTime: " + std::to_string(info.stopTime) + ", ";
+    time_info += "depth: " + std::to_string(info.maxDepth);
+    log(time_info);
+    std::cout << time_info << std::endl;
 }
 
 
@@ -423,25 +465,29 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         }
         std::vector<std::string> pvLine = getPVLine(depth);
         assert(pvLine.size() > 0);
+        std::string info_string;
         bestMove = pvLine[0];
         if (eval > 20000) {
             int mate = MATE - eval;
-            std::cout << "info score mate " << ((mate + 1) / 2);
+            info_string += "info score mate " + std::to_string((mate + 1) / 2);
         }
         else if (eval < -20000) {
             int mate = MATE + eval;
-            std::cout << "info score mate " << -((mate + 1) / 2);
+            info_string += "info score mate " + std::to_string(-((mate + 1) / 2));
         }
         else {
-            std::cout << "info score cp " << eval;
+            info_string += "info score cp " + std::to_string(eval);
         }
-        std::cout << " depth " << depth << " nodes " << info.nodes;
-        std::cout << " time " << (currentTime() - info.startTime) << " pv ";
+        info_string += " depth " + std::to_string(depth);
+        info_string += " nodes " + std::to_string(info.nodes);
+        info_string += " time " + std::to_string(currentTime() - info.startTime) + " pv";
         for (std::string moveString : pvLine) {
-            std::cout << moveString << ' ';
-        } std::cout << std::endl;
+            info_string += " " + moveString;
+        }
+        std::cout << info_string << std::endl;
+        log(info_string);
  #ifndef NDEBUG
-        printf("\tordering: %.2f\n", info.fh == 0.0f ? 0.0f : info.fhf / info.fh);
+        log("\tordering: " + std::to_string(info.fh == 0.0f ? 0.0f : info.fhf / info.fh));
  #endif
         if (eval > 20000) {
             break;
@@ -449,4 +495,5 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
     }
     assert(bestMove != "");
     std::cout << "bestmove " << bestMove << std::endl;
+    log("bestmove " + bestMove);
 }
