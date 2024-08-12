@@ -71,7 +71,7 @@ The strength of chess players and engines is measured in [ELO][elo-link].
 
 | Version | Bullet (lichess) | Blitz (lichess) | Rapid (lichess) |
 |---|---|---|---|
-| [v1.0.5][v1.0-link] | 1985 | 1841 | 1955 |
+| [v1.0.5][v1.0-link] | 1962 | 1879 | 1982 |
 
 ## Features
 

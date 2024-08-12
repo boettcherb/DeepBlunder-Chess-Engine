@@ -1,113 +1,134 @@
 #include "engine.h"
 #include <iostream>
 #include <thread>
+#include <string>
 #include <vector>
 #include <sstream>
 #include <chrono>
 
-constexpr auto VERSION = "v1.1.7";
+constexpr auto VERSION = "v1.1.8";
 
 
-static bool hasNextToken(std::stringstream& ss) {
-    ss >> std::ws;
-    return !ss.eof();
+static void search(Engine& engine, SearchInfo info) {
+    engine.searchPosition(info);
 }
 
-
-static void search(Engine& chessEngine, SearchInfo info) {
-    chessEngine.searchPosition(info);
+static void uci_process_setoption(Engine& engine, std::stringstream& ss) {
+    std::string token, name, value;
+    ss >> token;
+    assert(token == "name");
+    while (ss >> token && token != "value") {
+        name += (name.empty() ? "" : " ") + token;
+    }
+    while (ss >> token) {
+        value += (value.empty() ? "" : " ") + token;
+    }
+    if (name == "Hash") {
+        assert(!value.empty());
+        engine.setHashTableSize(std::stoi(value));
+    }
 }
 
+static void uci_process_position(Engine& engine, std::stringstream& ss) {
+    std::string token;
+    ss >> token;
+    if (token == "fen") {
+        std::string fen;
+        for (int i = 0; i < 6; ++i) {
+            ss >> token;
+            fen += token + " ";
+        }
+        fen.pop_back();
+        engine.setupBoard(fen);
+    } else {
+        assert(token == "startpos");
+        engine.setupBoard();
+    }
+    if (ss >> token) {
+        assert(token == "moves");
+        std::vector<std::string> moves;
+        while (ss >> token) {
+            moves.push_back(token);
+        }
+        engine.makeMoves(moves);
+    }
+}
+
+static SearchInfo uci_process_go(std::stringstream& ss) {
+    SearchInfo info;
+    std::string token;
+    while (ss >> token) {
+        if (token == "depth") {
+            ss >> token;
+            info.maxDepth = std::stoi(token);
+        }
+        else if (token == "winc") {
+            ss >> token;
+            info.inc[WHITE] = std::stoi(token);
+        }
+        else if (token == "binc") {
+            ss >> token;
+            info.inc[BLACK] = std::stoi(token);
+        }
+        else if (token == "wtime") {
+            ss >> token;
+            info.time[WHITE] = std::stoi(token);
+        }
+        else if (token == "btime") {
+            ss >> token;
+            info.time[BLACK] = std::stoi(token);
+        }
+        else if (token == "movetime") {
+            ss >> token;
+            info.movetime = std::stoi(token);
+        }
+        else if (token == "movestogo") {
+            ss >> token;
+            info.movestogo = std::stoi(token);
+        }
+    }
+    return info;
+}
 
 static void uci() {
     Engine engine;
-    bool initialized = false;
     std::thread searchThread;
-    std::cout << "id name DeepBlunder " << VERSION << std::endl;
-    std::cout << "id author Brandon Boettcher" << std::endl;
+    std::cout << "id name DeepBlunder " << VERSION << '\n';
+    std::cout << "id author Brandon Boettcher\n";
+    std::cout << "option name Hash type spin default 128 min 1 max 4096\n";
     std::cout << "uciok" << std::endl;
     while (true) {
-        std::string input;
+        std::string input, token;
         std::getline(std::cin, input);
-        std::vector<std::string> tokens;
         std::stringstream ss(input);
-        while (hasNextToken(ss)) {
-            std::string tok;
-            ss >> tok;
-            tokens.push_back(tok);
-        }
-        int numTokens = (int) tokens.size();
-        if (numTokens == 0) {
-            continue;
-        }
-        if (tokens[0] == "isready") {
-            assert(numTokens == 1);
-            if (!initialized) {
+        while (ss >> token) {
+            if (token == "isready") {
+                assert(!(ss >> token));
                 engine.initialize();
-                initialized = true;
+                std::cout << "readyok" << std::endl;
             }
-            std::cout << "readyok" << std::endl;
-        } else if (tokens[0] == "position") {
-            assert(numTokens > 1);
-            int index = 1;
-            if (tokens[index] == "fen") {
-                assert(numTokens >= 8);
-                std::string fen;
-                for (int i = 0; i < 6; ++i) {
-                    fen += tokens[++index] + " ";
+            else if (token == "setoption") {
+                uci_process_setoption(engine, ss);
+            }
+            else if (token == "position") {
+                uci_process_position(engine, ss);
+            }
+            else if (token == "go") {
+                SearchInfo info = uci_process_go(ss);
+                if (searchThread.joinable()) {
+                    searchThread.join();
                 }
-                fen.pop_back();
-                engine.setupBoard(fen);
-            } else {
-                assert(tokens[index] == "startpos");
-                engine.setupBoard();
+                searchThread = std::thread(search, std::ref(engine), info);
             }
-            if (numTokens > ++index) {
-                assert(tokens[index] == "moves");
-                std::vector<std::string> moves;
-                while (++index < numTokens) {
-                    moves.push_back(tokens[index]);
-                }
-                engine.makeMoves(moves);
+            else if (token == "stop") {
+                assert(!(ss >> token));
+                engine.stopSearch();
             }
-        } else if (tokens[0] == "go") {
-            SearchInfo info;
-            int index = 0;
-            while (++index < numTokens) {
-                if (tokens[index] == "depth") {
-                    assert(index + 1 < numTokens);
-                    info.maxDepth = std::stoi(tokens[++index]);
-                } else if (tokens[index] == "winc") {
-                    assert(index + 1 < numTokens);
-                    info.inc[WHITE] = std::stoi(tokens[++index]);
-                } else if (tokens[index] == "binc") {
-                    assert(index + 1 < numTokens);
-                    info.inc[BLACK] = std::stoi(tokens[++index]);
-                } else if (tokens[index] == "wtime") {
-                    assert(index + 1 < numTokens);
-                    info.time[WHITE] = std::stoi(tokens[++index]);
-                } else if (tokens[index] == "btime") {
-                    assert(index + 1 < numTokens);
-                    info.time[BLACK] = std::stoi(tokens[++index]);
-                } else if (tokens[index] == "movetime") {
-                    assert(index + 1 < numTokens);
-                    info.movetime = std::stoi(tokens[++index]);
-                } else if (tokens[index] == "movestogo") {
-                    assert(index + 1 < numTokens);
-                    info.movestogo = std::stoi(tokens[++index]);
-                }
+            else if (token == "quit") {
+                assert(!(ss >> token));
+                engine.stopSearch();
+                break;
             }
-            if (searchThread.joinable()) {
-                searchThread.join();
-            }
-            searchThread = std::thread(search, std::ref(engine), info);
-        } else if (tokens[0] == "stop") {
-            assert(numTokens == 1);
-            engine.stopSearch();
-        } else if (tokens[0] == "quit") {
-            assert(numTokens == 1);
-            engine.stopSearch();
-            break;
         }
     }
     if (searchThread.joinable()) {
