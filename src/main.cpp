@@ -27,6 +27,10 @@ static void uci_process_setoption(Engine& engine, std::stringstream& ss) {
         assert(!value.empty());
         engine.setHashTableSize(std::stoi(value));
     }
+    if (name == "Log File") {
+        assert(!value.empty());
+        engine.setLogFile(value);
+    }
 }
 
 static void uci_process_position(Engine& engine, std::stringstream& ss) {
@@ -96,10 +100,13 @@ static void uci() {
     std::cout << "id name DeepBlunder " << VERSION << '\n';
     std::cout << "id author Brandon Boettcher\n";
     std::cout << "option name Hash type spin default 128 min 1 max 4096\n";
+    std::cout << "option name Log File type string default log.txt\n";
     std::cout << "uciok" << std::endl;
-    while (true) {
+    bool quit = false;
+    while (!quit) {
         std::string input, token;
         std::getline(std::cin, input);
+        engine.log("Received uci command: " + input);
         std::stringstream ss(input);
         while (ss >> token) {
             if (token == "isready") {
@@ -127,6 +134,7 @@ static void uci() {
             else if (token == "quit") {
                 assert(!(ss >> token));
                 engine.stopSearch();
+                quit = true;
                 break;
             }
         }
