@@ -84,7 +84,7 @@ class Engine {
 
     // UCI options
     int hashTableSize = 128;
-    std::string logFile = "log.txt";
+    std::string logFile = "deepblunder.log";
 
 public:
     Engine();

@@ -109,7 +109,7 @@ void Engine::setLogFile(const std::string& path) {
 void Engine::log(const std::string& message) {
     logger_mutex.lock();
     if (logger.is_open()) {
-        logger << message << std::endl;
+        logger << message << '\n';
     }
     logger_mutex.unlock();
 }
