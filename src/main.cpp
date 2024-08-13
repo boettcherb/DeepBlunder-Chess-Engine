@@ -38,18 +38,16 @@ static void uci_process_position(Engine& engine, std::stringstream& ss) {
     ss >> token;
     if (token == "fen") {
         std::string fen;
-        for (int i = 0; i < 6; ++i) {
-            ss >> token;
-            fen += token + " ";
+        while (ss >> token && token != "moves") {
+            fen += (fen.empty() ? "" : " ") + token;
         }
-        fen.pop_back();
         engine.setupBoard(fen);
     } else {
         assert(token == "startpos");
         engine.setupBoard();
+        ss >> token;
     }
-    if (ss >> token) {
-        assert(token == "moves");
+    if (token == "moves") {
         std::vector<std::string> moves;
         while (ss >> token) {
             moves.push_back(token);
