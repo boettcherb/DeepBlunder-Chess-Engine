@@ -100,6 +100,7 @@ static void uci() {
     std::cout << "option name Hash type spin default 128 min 1 max 4096\n";
     std::cout << "option name Log File type string default log.txt\n";
     std::cout << "uciok" << std::endl;
+    engine.log("\n\n\nStarting engine: DeepBlunder " + std::string(VERSION));
     bool quit = false;
     while (!quit) {
         std::string input, token;

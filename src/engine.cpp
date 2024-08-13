@@ -46,7 +46,6 @@ Engine::Engine() {
     logger_mutex.lock();
     logger.open(logFile, std::ios::out | std::ios::app);
     logger_mutex.unlock();
-    log("\n\n\n");
 }
 
 
