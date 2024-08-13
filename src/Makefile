@@ -13,8 +13,8 @@ exe_release = deepblunder_$(VERSION)_linux
 exe_debug = deepblunder_debug_$(VERSION)_linux
 
 # Build directories
-release_dir = build/release
-debug_dir = build/debug
+release_dir = build/deepblunder_release
+debug_dir = build/deepblunder_debug
 
 # Create names for object and dependency files by prepending the correct path (either
 # build/release or build/debug) and appending the correct extension (either .o or .d)
