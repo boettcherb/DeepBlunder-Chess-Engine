@@ -38,9 +38,6 @@
  *****************************************************************************/
 
 
-static inline constexpr int MAX_MOVE_SCORE = 63;
-
-
 /*
  * 
  * MoveList constructor. Given a board, fill the movelist with every legal and
@@ -78,7 +75,7 @@ int MoveList::numMoves() const {
  */
 int MoveList::operator[](int index) const {
     assert(index >= 0 && index < static_cast<int>(moves.size()));
-    assert(validMove(moves[index]));
+    assert(validMove(moves[index].move));
     return moves[index].move;
 }
 
@@ -103,124 +100,6 @@ int MoveList::getMove(int from, int to, int cap, int flags) const {
     return move;
 }
 
-
-/*
- * 
- * Given a move that is packed into a 32-bit integer, make sure that it is a
- * valid move. For example, the captured piece cannot be a king, and if the
- * promotion flag is set, then the promoted piece must be present, etc. This is
- * a debug function which should only be called within asserts in debug mode.
- * 
- */
-bool MoveList::validMove(int move) const {
-    int from = move & 0x3F;
-    int to = (move >> 6) & 0x3F;
-    int cap = (move >> 12) & 0xF;
-    int prom = (move >> 16) & 0xF;
-
-    if (move & CAPTURE_FLAG) {
-        if (cap < 0 || cap >= NUM_PIECE_TYPES
-            || cap == WHITE_KING || cap == BLACK_KING) {
-            std::cout << "Invalid captured piece (1)" << std::endl;
-            return false;
-        }
-        if (move & (EN_PASSANT_FLAG | CASTLE_FLAG | PAWN_START_FLAG)) {
-            std::cout << "Invalid flags (1)" << std::endl;
-            return false;
-        }
-    }
-    else {
-        if (cap != 0xF) {
-            std::cerr << "Invalid captured piece (2)" << std::endl;
-            return false;
-        }
-    }
-    if (move & PROMOTION_FLAG) {
-        if (prom < 0 || prom >= NUM_PIECE_TYPES || prom == WHITE_KING
-            || prom == WHITE_PAWN || prom == BLACK_KING || prom == BLACK_PAWN) {
-            std::cerr << "Invalid promoted piece (1)" << std::endl;
-            return false;
-        }
-        if (move & (EN_PASSANT_FLAG | CASTLE_FLAG | PAWN_START_FLAG)) {
-            std::cerr << "Invalid flags (2)" << std::endl;
-            return false;
-        }
-        if (!((from < 16 && from >= 8 && to < 8) ||
-              (from >= 48 && from < 56 && to >= 56))) {
-            std::cerr << "Invalid from/to squares for promotion" << std::endl;
-            return false;
-        }
-    }
-    else {
-        if (prom != 0xF) {
-            std::cout << "Invalid promoted piece (2)" << std::endl;
-            return false;
-        }
-    }
-    if (move & CASTLE_FLAG) {
-        if (move & (CAPTURE_AND_PROMOTION_FLAG | PAWN_START_FLAG | EN_PASSANT_FLAG)) {
-            std::cerr << "Invalid flags (3)" << std::endl;
-            return false;
-        }
-        if (cap != 0xF) {
-            std::cerr << "Invalid captured piece (3)" << std::endl;
-            return false;
-        }
-        if (prom != 0xF) {
-            std::cout << "Invalid promoted piece (3)" << std::endl;
-            return false;
-        }
-        if (!(from == E1 && (to == G1 || to == C1))
-            && !(from == E8 && (to == G8 || to == C8))) {
-            std::cerr << "Invalid from/to squares for castling" << std::endl;
-        }
-    }
-    if (move & PAWN_START_FLAG) {
-        if (move & (CAPTURE_AND_PROMOTION_FLAG | CASTLE_FLAG | EN_PASSANT_FLAG)) {
-            std::cerr << "Invalid flags (4)" << std::endl;
-            return false;
-        }
-        if (cap != 0xF) {
-            std::cerr << "Invalid captured piece (4)" << std::endl;
-            return false;
-        }
-        if (prom != 0xF) {
-            std::cout << "Invalid promoted piece (4)" << std::endl;
-            return false;
-        }
-        uint64 F = 1ULL << from;
-        uint64 T = 1ULL << to;
-        if (!((F & 0x00FF00000000FF00) && (T & 0x000000FFFF000000)
-              && (std::abs(from - to) == 16))) {
-            std::cerr << "Invalid from/to squares for pawn start" << std::endl;
-            return false;
-        }
-    }
-    if (move & EN_PASSANT_FLAG) {
-        if (move & (CAPTURE_AND_PROMOTION_FLAG | PAWN_START_FLAG | CASTLE_FLAG)) {
-            std::cerr << "Invalid flags (5)" << std::endl;
-            return false;
-        }
-        if (cap != 0xF) {
-            std::cerr << "Invalid captured piece (5)" << std::endl;
-            return false;
-        }
-        if (prom != 0xF) {
-            std::cout << "Invalid promoted piece (5)" << std::endl;
-            return false;
-        }
-        uint64 F = 1ULL << from;
-        uint64 T = 1ULL << to;
-        if (!((F & 0x000000FFFF000000) && (T & 0x0000FF0000FF0000)
-              && (std::abs(from - to) == 7 || std::abs(from - to) == 9))) {
-            std::cerr << "Invalid from/to squares for en passant" << std::endl;
-            return false;
-        }
-    }
-    return true;
-}
-
-
 /*
  *
  * Variables storing the move score for each move type. A move with a higher
@@ -240,31 +119,33 @@ bool MoveList::validMove(int move) const {
  *
  */
 static inline constexpr int captureScore[NUM_PIECE_TYPES][NUM_PIECE_TYPES] = {
-    {  0,  0,  0,  0,  0,  0, 46, 55, 56, 59, 62,  0 },
-    {  0,  0,  0,  0,  0,  0, 40, 49, 50, 54, 61,  0 },
-    {  0,  0,  0,  0,  0,  0, 39, 47, 48, 53, 60,  0 },
-    {  0,  0,  0,  0,  0,  0, 38, 44, 45, 51, 58,  0 },
-    {  0,  0,  0,  0,  0,  0, 37, 41, 42, 43, 52,  0 },
-    {  0,  0,  0,  0,  0,  0, 34, 35, 36, 36, 57,  0 },
-    { 46, 55, 56, 59, 62,  0,  0,  0,  0,  0,  0,  0 },
-    { 40, 49, 50, 54, 61,  0,  0,  0,  0,  0,  0,  0 },
-    { 39, 47, 48, 53, 60,  0,  0,  0,  0,  0,  0,  0 },
-    { 38, 44, 45, 51, 58,  0,  0,  0,  0,  0,  0,  0 },
-    { 37, 41, 42, 43, 52,  0,  0,  0,  0,  0,  0,  0 },
-    { 34, 35, 36, 36, 57,  0,  0,  0,  0,  0,  0,  0 },
+    {  0,  0,  0,  0,  0,  0,  6, 19, 20, 27, 31,  0 },
+    {  0,  0,  0,  0,  0,  0,  5, 15, 16, 21, 30,  0 },
+    {  0,  0,  0,  0,  0,  0,  4, 13, 14, 22, 29,  0 },
+    {  0,  0,  0,  0,  0,  0,  3, 11, 12, 17, 28,  0 },
+    {  0,  0,  0,  0,  0,  0,  2,  8, 10, 18, 19,  0 },
+    {  0,  0,  0,  0,  0,  0,  1, 23, 24, 25, 26,  0 },
+    {  6, 19, 20, 27, 31,  0,  0,  0,  0,  0,  0,  0 },
+    {  5, 15, 16, 21, 30,  0,  0,  0,  0,  0,  0,  0 },
+    {  4, 13, 14, 22, 29,  0,  0,  0,  0,  0,  0,  0 },
+    {  3, 11, 12, 17, 28,  0,  0,  0,  0,  0,  0,  0 },
+    {  2,  8, 10, 18, 19,  0,  0,  0,  0,  0,  0,  0 },
+    {  1, 23, 24, 25, 26,  0,  0,  0,  0,  0,  0,  0 },
 };
 static inline constexpr int moveScore[NUM_PIECE_TYPES] = {
     6, 5, 4, 3, 2, 1, 6, 5, 4, 3, 2, 1,
 };
 static inline constexpr int promotionScore[NUM_PIECE_TYPES] = {
-    0, 55, 56, 59, 62, 0, 0, 55, 56, 59, 62, 0,
+    0, 1000020, 1000021, 1000028, 1000032, 0,
+    0, 1000020, 1000021, 1000028, 1000032, 0,
 };
-static inline constexpr int enPassantScore = 46;
+static inline constexpr int enPassantScore = 1000008;
 static inline constexpr int castleScore = 8;
 static inline constexpr int pawnStartScore = 7;
-static inline constexpr int pvScore = 63;
-static inline constexpr int killerScore1 = 33;
-static inline constexpr int killerScore2 = 32;
+static inline constexpr int pvScore = 2000000000;
+static inline constexpr int captureScoreBonus = 1000002;
+static inline constexpr int killerScore1 = 1000001;
+static inline constexpr int killerScore2 = 1000000;
 static inline constexpr int historyScore = 9;
 
 
@@ -283,7 +164,7 @@ void MoveList::generatePieceMoves(int sq, uint64 attacks) {
         int to = getLSB(attacks);
         if (board[to] == INVALID) {
             int move = getMove(sq, to, INVALID, 0);
-            moves.emplace_back(move, moveScore[board[to]]);
+            moves.emplace_back(move, moveScore[board[sq]]);
         } else {
             int move = getMove(sq, to, board[to], CAPTURE_FLAG);
             moves.emplace_back(move, captureScore[board[sq]][board[to]]);
@@ -312,10 +193,10 @@ void MoveList::addPawnMove(int move, int score) {
         int bishop = pieceType[board.side()][BISHOP];
         int rook = pieceType[board.side()][ROOK];
         int queen = pieceType[board.side()][QUEEN];
-        moves.emplace_back(move | (knight << 16), promotionScore[KNIGHT]);
-        moves.emplace_back(move | (bishop << 16), promotionScore[BISHOP]);
-        moves.emplace_back(move | (rook << 16), promotionScore[ROOK]);
-        moves.emplace_back(move | (queen << 16), promotionScore[QUEEN]);
+        moves.emplace_back(move | (knight << 16), score + promotionScore[KNIGHT]);
+        moves.emplace_back(move | (bishop << 16), score + promotionScore[BISHOP]);
+        moves.emplace_back(move | (rook << 16), score + promotionScore[ROOK]);
+        moves.emplace_back(move | (queen << 16), score + promotionScore[QUEEN]);
     } else {
         moves.emplace_back(move, score);
     }
@@ -677,7 +558,7 @@ void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
                           int searchHistory[NUM_PIECE_TYPES][64]) {
     for (Move& move : moves) {
         if (move.move == bestMove) {
-            move.score = MAX_MOVE_SCORE;
+            move.score = pvScore;
         }
         else if (move.move == killers[board.getSearchPly()][0]) {
             move.score = killerScore1;
@@ -691,6 +572,10 @@ void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
             if (searchHistory[piece][to] > 0) {
                 move.score = historyScore + searchHistory[piece][to];
             }
+        }
+        else {
+            assert(move.move & (CAPTURE_FLAG | EN_PASSANT_FLAG));
+            move.score += captureScoreBonus;
         }
     }
     auto compareMoves = [](const Move& m1, const Move& m2) -> bool {
@@ -719,4 +604,121 @@ bool MoveList::moveExists(int move) {
         }
     }
     return false;
+}
+
+
+/*
+ * 
+ * Given a move that is packed into a 32-bit integer, make sure that it is a
+ * valid move. For example, the captured piece cannot be a king, and if the
+ * promotion flag is set, then the promoted piece must be present, etc. This is
+ * a debug function which should only be called within asserts in debug mode.
+ * 
+ */
+bool MoveList::validMove(int move) const {
+    int from = move & 0x3F;
+    int to = (move >> 6) & 0x3F;
+    int cap = (move >> 12) & 0xF;
+    int prom = (move >> 16) & 0xF;
+
+    if (move & CAPTURE_FLAG) {
+        if (cap < 0 || cap >= NUM_PIECE_TYPES
+            || cap == WHITE_KING || cap == BLACK_KING) {
+            std::cout << "Invalid captured piece (1)" << std::endl;
+            return false;
+        }
+        if (move & (EN_PASSANT_FLAG | CASTLE_FLAG | PAWN_START_FLAG)) {
+            std::cout << "Invalid flags (1)" << std::endl;
+            return false;
+        }
+    }
+    else {
+        if (cap != 0xF) {
+            std::cerr << "Invalid captured piece (2)" << std::endl;
+            return false;
+        }
+    }
+    if (move & PROMOTION_FLAG) {
+        if (prom < 0 || prom >= NUM_PIECE_TYPES || prom == WHITE_KING
+            || prom == WHITE_PAWN || prom == BLACK_KING || prom == BLACK_PAWN) {
+            std::cerr << "Invalid promoted piece (1)" << std::endl;
+            return false;
+        }
+        if (move & (EN_PASSANT_FLAG | CASTLE_FLAG | PAWN_START_FLAG)) {
+            std::cerr << "Invalid flags (2)" << std::endl;
+            return false;
+        }
+        if (!((from < 16 && from >= 8 && to < 8) ||
+              (from >= 48 && from < 56 && to >= 56))) {
+            std::cerr << "Invalid from/to squares for promotion" << std::endl;
+            return false;
+        }
+    }
+    else {
+        if (prom != 0xF) {
+            std::cout << "Invalid promoted piece (2)" << std::endl;
+            return false;
+        }
+    }
+    if (move & CASTLE_FLAG) {
+        if (move & (CAPTURE_AND_PROMOTION_FLAG | PAWN_START_FLAG | EN_PASSANT_FLAG)) {
+            std::cerr << "Invalid flags (3)" << std::endl;
+            return false;
+        }
+        if (cap != 0xF) {
+            std::cerr << "Invalid captured piece (3)" << std::endl;
+            return false;
+        }
+        if (prom != 0xF) {
+            std::cout << "Invalid promoted piece (3)" << std::endl;
+            return false;
+        }
+        if (!(from == E1 && (to == G1 || to == C1))
+            && !(from == E8 && (to == G8 || to == C8))) {
+            std::cerr << "Invalid from/to squares for castling" << std::endl;
+        }
+    }
+    if (move & PAWN_START_FLAG) {
+        if (move & (CAPTURE_AND_PROMOTION_FLAG | CASTLE_FLAG | EN_PASSANT_FLAG)) {
+            std::cerr << "Invalid flags (4)" << std::endl;
+            return false;
+        }
+        if (cap != 0xF) {
+            std::cerr << "Invalid captured piece (4)" << std::endl;
+            return false;
+        }
+        if (prom != 0xF) {
+            std::cout << "Invalid promoted piece (4)" << std::endl;
+            return false;
+        }
+        uint64 F = 1ULL << from;
+        uint64 T = 1ULL << to;
+        if (!((F & 0x00FF00000000FF00) && (T & 0x000000FFFF000000)
+              && (std::abs(from - to) == 16))) {
+            std::cerr << "Invalid from/to squares for pawn start" << std::endl;
+            return false;
+        }
+    }
+    if (move & EN_PASSANT_FLAG) {
+        if (move & (CAPTURE_AND_PROMOTION_FLAG | PAWN_START_FLAG | CASTLE_FLAG)) {
+            std::cerr << "Invalid flags (5)" << std::endl;
+            return false;
+        }
+        if (cap != 0xF) {
+            std::cerr << "Invalid captured piece (5)" << std::endl;
+            return false;
+        }
+        if (prom != 0xF) {
+            std::cout << "Invalid promoted piece (5)" << std::endl;
+            return false;
+        }
+        uint64 F = 1ULL << from;
+        uint64 T = 1ULL << to;
+        if (!((F & 0x000000FFFF000000) && (T & 0x0000FF0000FF0000)
+              && (std::abs(from - to) == 7 || std::abs(from - to) == 9))) {
+            std::cerr << "Invalid from/to squares for en passant" << std::endl;
+            return false;
+        }
+    }
+    return true;
 }

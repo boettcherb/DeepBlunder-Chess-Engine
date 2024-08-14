@@ -78,10 +78,12 @@ class Engine {
     Board board;
     TranspositionTable table;
     SearchInfo info;
-    int searchHistory[NUM_PIECE_TYPES][64];
-    int searchKillers[MAX_SEARCH_DEPTH][2];
     std::ofstream logger;
     std::mutex logger_mutex;
+
+    // for move ordering heuristics
+    int searchHistory[NUM_PIECE_TYPES][64];
+    int searchKillers[MAX_SEARCH_DEPTH][2];
 
     // UCI options
     int hashTableSize = 128;
