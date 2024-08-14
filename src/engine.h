@@ -88,12 +88,14 @@ class Engine {
 
     // UCI options
     int hashTableSize = 128;
+    int moveOverhead = 100;
     std::string logFile = "deepblunder.log";
 
 public:
     Engine();
 
     void setHashTableSize(int sizeInMB);
+    void setMoveOverhead(int overhead);
     void setLogFile(const std::string& path);
 
     void initialize();

@@ -27,6 +27,10 @@ static void uci_process_setoption(Engine& engine, std::stringstream& ss) {
         assert(!value.empty());
         engine.setHashTableSize(std::stoi(value));
     }
+    if (name == "Move Overhead") {
+        assert(!value.empty());
+        engine.setMoveOverhead(std::stoi(value));
+    }
     if (name == "Log File") {
         assert(!value.empty());
         engine.setLogFile(value);
@@ -98,6 +102,7 @@ static void uci() {
     std::cout << "id name DeepBlunder " << VERSION << '\n';
     std::cout << "id author Brandon Boettcher\n";
     std::cout << "option name Hash type spin default 128 min 1 max 4096\n";
+    std::cout << "option name Move Overhead type spin default 100 min 0 max 5000\n";
     std::cout << "option name Log File type string default deepblunder.log\n";
     std::cout << "uciok" << std::endl;
     engine.log("\n\n\nStarting engine: DeepBlunder " + std::string(VERSION));

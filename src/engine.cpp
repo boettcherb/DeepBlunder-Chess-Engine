@@ -81,6 +81,21 @@ void Engine::setHashTableSize(int sizeInMB) {
 
 /*
  * 
+ * Change the 'moveOverhead' value. This value is used to reserve a small
+ * portion of time on each move in case of sudden lag or internet delays. On
+ * each move, this value is subtracted from the calculted time remaining
+ * (occurs in setupSearch()).
+ * 
+ */
+void Engine::setMoveOverhead(int overhead) {
+    assert(overhead >= 0 && overhead <= 5000);
+    moveOverhead = overhead;
+    log("Setting move overhead to " + std::to_string(overhead) + " ms");
+}
+
+
+/*
+ * 
  * Set the path to the log file. If the file path is the value "<empty>", then
  * disable logging. This function is called whenever we receive a "setoption
  * name Log File ..." command from the GUI.
@@ -92,13 +107,13 @@ void Engine::setLogFile(const std::string& path) {
         return;
     }
     logFile = path;
+    log("Setting log file path to " + logFile);
     logger_mutex.lock();
     logger.close();
     if (path != "<empty>") {
         logger.open(logFile, std::ios::out | std::ios::app);
     }
     logger_mutex.unlock();
-    log("Setting log file path to " + logFile);
 }
 
 
@@ -256,7 +271,8 @@ void Engine::setupSearch() {
     if (info.time[side] != -1) {
         info.timeSet = true;
         info.time[side] /= info.movestogo;
-        info.stopTime = info.startTime + info.time[side] + info.inc[side] - 50;
+        info.stopTime = info.startTime + info.time[side] + info.inc[side];
+        info.stopTime -= moveOverhead;
     }
     board.resetSearchPly();
     std::memset(searchHistory, 0, sizeof(searchHistory));
@@ -265,10 +281,14 @@ void Engine::setupSearch() {
     info.fh = info.fhf = 0.0f;
  #endif
     std::string time_info = "timeSet: " + std::to_string(info.timeSet) + ", ";
-    time_info += "inc: " + std::to_string(info.inc[side]) + ", ";
-    time_info += "time: " + std::to_string(info.time[side]) + ", ";
-    time_info += "startTime: " + std::to_string(info.startTime) + ", ";
-    time_info += "stopTime: " + std::to_string(info.stopTime) + ", ";
+    if (side == WHITE) {
+        time_info += "wtime: " + std::to_string(info.time[side]) + ", ";
+        time_info += "winc: " + std::to_string(info.inc[side]) + ", ";
+    } else {
+        time_info += "btime: " + std::to_string(info.time[side]) + ", ";
+        time_info += "binc: " + std::to_string(info.inc[side]) + ", ";
+    }
+    time_info += "allocated time: " + std::to_string(info.stopTime - info.startTime) + ", ";
     time_info += "depth: " + std::to_string(info.maxDepth);
     log(time_info);
     std::cout << time_info << std::endl;
