@@ -119,34 +119,34 @@ int MoveList::getMove(int from, int to, int cap, int flags) const {
  *
  */
 static inline constexpr int captureScore[NUM_PIECE_TYPES][NUM_PIECE_TYPES] = {
-    {  0,  0,  0,  0,  0,  0,  6, 19, 20, 27, 31,  0 },
-    {  0,  0,  0,  0,  0,  0,  5, 15, 16, 21, 30,  0 },
-    {  0,  0,  0,  0,  0,  0,  4, 13, 14, 22, 29,  0 },
-    {  0,  0,  0,  0,  0,  0,  3, 11, 12, 17, 28,  0 },
-    {  0,  0,  0,  0,  0,  0,  2,  8, 10, 18, 19,  0 },
-    {  0,  0,  0,  0,  0,  0,  1, 23, 24, 25, 26,  0 },
-    {  6, 19, 20, 27, 31,  0,  0,  0,  0,  0,  0,  0 },
-    {  5, 15, 16, 21, 30,  0,  0,  0,  0,  0,  0,  0 },
-    {  4, 13, 14, 22, 29,  0,  0,  0,  0,  0,  0,  0 },
-    {  3, 11, 12, 17, 28,  0,  0,  0,  0,  0,  0,  0 },
-    {  2,  8, 10, 18, 19,  0,  0,  0,  0,  0,  0,  0 },
-    {  1, 23, 24, 25, 26,  0,  0,  0,  0,  0,  0,  0 },
+    {    0,   0,   0,   0,   0,  0, 150, 320, 330, 350, 390, 0 },
+    {    0,   0,   0,   0,   0,  0, 140, 240, 260, 310, 380, 0 },
+    {    0,   0,   0,   0,   0,  0, 130, 230, 250, 300, 370, 0 },
+    {    0,   0,   0,   0,   0,  0, 120, 200, 210, 270, 360, 0 },
+    {    0,   0,   0,   0,   0,  0, 110, 180, 190, 220, 280, 0 },
+    {    0,   0,   0,   0,   0,  0, 100, 160, 170, 290, 340, 0 },
+    {  150, 320, 330, 350, 390,  0,   0,   0,   0,   0,   0, 0 },
+    {  140, 240, 260, 310, 380,  0,   0,   0,   0,   0,   0, 0 },
+    {  130, 230, 250, 300, 370,  0,   0,   0,   0,   0,   0, 0 },
+    {  120, 200, 210, 270, 360,  0,   0,   0,   0,   0,   0, 0 },
+    {  110, 180, 190, 220, 280,  0,   0,   0,   0,   0,   0, 0 },
+    {  100, 160, 170, 290, 340,  0,   0,   0,   0,   0,   0, 0 },
 };
 static inline constexpr int moveScore[NUM_PIECE_TYPES] = {
     6, 5, 4, 3, 2, 1, 6, 5, 4, 3, 2, 1,
 };
 static inline constexpr int promotionScore[NUM_PIECE_TYPES] = {
-    0, 1000018, 1000019, 1000026, 1000030, 0,
-    0, 1000018, 1000019, 1000026, 1000030, 0,
+    0, 1000315, 1000325, 1000345, 1000385, 0,
+    0, 1000315, 1000325, 1000345, 1000385, 0,
 };
-static inline constexpr int enPassantScore = 1000008;
+static inline constexpr int enPassantScore = 1000000 + 155;
 static inline constexpr int castleScore = 8;
 static inline constexpr int pawnStartScore = 7;
 static inline constexpr int pvScore = 2000000000;
 static inline constexpr int captureScoreBonus = 1000000;
-static inline constexpr int killerScore1 = 999990;
-static inline constexpr int killerScore2 = 999980;
-static inline constexpr int counterMoveScore = 999985;
+static inline constexpr int killerScore1      = 1000000 + 205;
+static inline constexpr int killerScore2      = 1000000 + 95;
+static inline constexpr int counterMoveScore  = 1000000 + 105;
 static inline constexpr int historyScore = 9;
 
 
@@ -558,7 +558,6 @@ void MoveList::generateCaptureMoves(const Board& b) {
 void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
                           int searchHistory[NUM_PIECE_TYPES][64],
                           int counterMove[NUM_PIECE_TYPES][64]) {
-    (void) bestMove, killers, searchHistory, counterMove;
     for (Move& move : moves) {
         if (move.move == bestMove) {
             move.score = pvScore;
