@@ -66,7 +66,7 @@ MoveList::MoveList(const Board& board, bool onlyCaptures) {
  *
  */
 int MoveList::numMoves() const {
-    return (int) moves.size();
+    return static_cast<int>(moves.size());
 }
 
 
@@ -77,7 +77,7 @@ int MoveList::numMoves() const {
  * 
  */
 int MoveList::operator[](int index) const {
-    assert(index >= 0 && index < (int) moves.size());
+    assert(index >= 0 && index < static_cast<int>(moves.size()));
     assert(validMove(moves[index]));
     return moves[index];
 }

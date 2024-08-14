@@ -212,7 +212,7 @@ std::vector<std::string> Engine::getPVLine(int depth) {
         board.makeMove(storedMove);
 #endif
     }
-    for (int i = 0; i < (int) moves.size(); ++i) {
+    for (int i = 0; i < static_cast<int>(moves.size()); ++i) {
         board.undoMove();
     }
     return moves;

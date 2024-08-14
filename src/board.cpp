@@ -228,7 +228,7 @@ static inline constexpr int castlePermissions[64] = {
  */
 bool Board::makeMove(int move) {
     assert(boardIsValid());
-    assert(ply == (int) history.size());
+    assert(ply == static_cast<int>(history.size()));
     int from = move & 0x3F;
     int to = (move >> 6) & 0x3F;
     history.emplace_back(move, castlePerms, fiftyMoveCount,
@@ -298,7 +298,7 @@ bool Board::makeMove(int move) {
 void Board::undoMove() {
     assert(boardIsValid());
     assert(history.size() > 0);
-    assert(ply == (int) history.size());
+    assert(ply == static_cast<int>(history.size()));
     --ply;
     --searchPly;
     sideToMove = !sideToMove;
@@ -411,11 +411,12 @@ bool Board::squaresAttacked(uint64 squares, int side) const {
  */
 bool Board::isRepetition() const {
     assert(boardIsValid());
-    int start = (int) history.size() - 2;
-    int stop = std::max(0, (int) history.size() - fiftyMoveCount);
+    int size = static_cast<int>(history.size());
+    int start = size - 2;
+    int stop = std::max(0, size - fiftyMoveCount);
     assert(stop >= 0);
     for (int i = start; i >= stop; i -= 2) {
-        assert(i >= 0 && i < (int) history.size());
+        assert(i >= 0 && i < size);
         if (positionKey == history[i].positionKey) {
             return true;
         }

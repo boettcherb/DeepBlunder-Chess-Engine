@@ -377,7 +377,7 @@ void Engine::runPerftTests() const {
 
     Board b = Board();
     uint64 totalTime = 0, totalLeafNodes = 0, numPassed = 0;
-    int num_tests = (int) PERFT_FENS.size();
+    int num_tests = static_cast<int>(PERFT_FENS.size());
     for (int test = 0; test < num_tests; ++test) {
         std::cout << "----------------------------------------------------------------------------------------" << std::endl;
         std::cout << (test + 1) << ") FEN: \"" << PERFT_FENS[test] << "\"" << std::endl;
