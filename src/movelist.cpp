@@ -136,16 +136,17 @@ static inline constexpr int moveScore[NUM_PIECE_TYPES] = {
     6, 5, 4, 3, 2, 1, 6, 5, 4, 3, 2, 1,
 };
 static inline constexpr int promotionScore[NUM_PIECE_TYPES] = {
-    0, 1000020, 1000021, 1000028, 1000032, 0,
-    0, 1000020, 1000021, 1000028, 1000032, 0,
+    0, 1000018, 1000019, 1000026, 1000030, 0,
+    0, 1000018, 1000019, 1000026, 1000030, 0,
 };
 static inline constexpr int enPassantScore = 1000008;
 static inline constexpr int castleScore = 8;
 static inline constexpr int pawnStartScore = 7;
 static inline constexpr int pvScore = 2000000000;
-static inline constexpr int captureScoreBonus = 1000002;
-static inline constexpr int killerScore1 = 1000001;
-static inline constexpr int killerScore2 = 1000000;
+static inline constexpr int captureScoreBonus = 1000000;
+static inline constexpr int killerScore1 = 999990;
+static inline constexpr int killerScore2 = 999980;
+static inline constexpr int counterMoveScore = 999985;
 static inline constexpr int historyScore = 9;
 
 
@@ -549,36 +550,51 @@ void MoveList::generateCaptureMoves(const Board& b) {
  * previously searched and a best move was found, that move can be passed in
  * here and it will receive the highest score possible, ensuring that it is
  * considered first by the Alpha-Beta algorithm. If there are any non-capture
- * moves that match those stored by the killer move heuristic or the search
- * history heuristic, increase their scores as well. This will improve our move
- * ordering, which can lead to more pruning.
+ * moves that match those stored by the killer move heuristic, the search
+ * history heuristic, or the countermove heuristic, increase their scores as
+ * well. This will improve our move ordering, which can lead to more pruning.
  *
  */
 void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
-                          int searchHistory[NUM_PIECE_TYPES][64]) {
+                          int searchHistory[NUM_PIECE_TYPES][64],
+                          int counterMove[NUM_PIECE_TYPES][64]) {
+    (void) bestMove, killers, searchHistory, counterMove;
     for (Move& move : moves) {
         if (move.move == bestMove) {
             move.score = pvScore;
+            continue;
         }
-        else if (move.move == killers[board.getSearchPly()][0]) {
+        if (move.move == killers[board.getSearchPly()][0]) {
             move.score = killerScore1;
+            continue;
         }
-        else if (move.move == killers[board.getSearchPly()][1]) {
+        if (move.move == killers[board.getSearchPly()][1]) {
             move.score = killerScore2;
+            continue;
         }
-        else if (!(move.move & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
+        if (!(move.move & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
+            int prevMove = board.getPreviousMove();
+            if (prevMove != INVALID) {
+                int prevTo = (prevMove >> 6) & 0x3F;
+                int prevPiece = board[prevTo];
+                assert(prevPiece != INVALID);
+                if (move.move == counterMove[prevPiece][prevTo]) {
+                    move.score = counterMoveScore;
+                    continue;
+                }
+            }
             int piece = board[move.move & 0x3F];
             int to = (move.move >> 6) & 0x3F;
             if (searchHistory[piece][to] > 0) {
                 move.score = historyScore + searchHistory[piece][to];
             }
+            continue;
         }
-        else {
-            assert(move.move & (CAPTURE_FLAG | EN_PASSANT_FLAG));
-            move.score += captureScoreBonus;
-        }
+        assert(move.move & (CAPTURE_FLAG | EN_PASSANT_FLAG));
+        move.score += captureScoreBonus;
     }
     auto compareMoves = [](const Move& m1, const Move& m2) -> bool {
+        assert(m1.score > 0 && m2.score > 0);
         return m1.score > m2.score;
     };
     std::sort(moves.begin(), moves.end(), compareMoves);

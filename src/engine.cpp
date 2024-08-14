@@ -318,7 +318,8 @@ int Engine::quiescence(int alpha, int beta) {
     }
     MoveList moveList(board, true);
     int storedBestMove = table.retrieve(board.getPositionKey());
-    moveList.orderMoves(storedBestMove, searchKillers, searchHistory);
+    moveList.orderMoves(storedBestMove, searchKillers,
+        searchHistory, counterMoves);
     int numMoves = moveList.numMoves(), legalMoves = 0;
     int bestMove = INVALID;
     int oldAlpha = alpha;
@@ -387,7 +388,8 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
     }
     MoveList moveList(board);
     int storedBestMove = table.retrieve(board.getPositionKey());
-    moveList.orderMoves(storedBestMove, searchKillers, searchHistory);
+    moveList.orderMoves(storedBestMove, searchKillers,
+        searchHistory, counterMoves);
     int numMoves = moveList.numMoves(), legalMoves = 0, bestMove = INVALID;
     int oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
@@ -409,6 +411,13 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
                         int sp = board.getSearchPly();
                         searchKillers[sp][1] = searchKillers[sp][0];
                         searchKillers[sp][0] = moveList[i];
+                        int prevMove = board.getPreviousMove();
+                        if (prevMove != INVALID) {
+                            int prevTo = (prevMove >> 6) & 0x3F;
+                            int prevPiece = board[prevTo];
+                            assert(prevPiece != INVALID);
+                            counterMoves[prevPiece][prevTo] = moveList[i];
+                        }
                     }
                     return beta;
                 }

@@ -23,7 +23,8 @@ public:
     void generateMoves(const Board& b);
     void generateCaptureMoves(const Board& b);
     void orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
-                    int searchHistory[NUM_PIECE_TYPES][64]);
+                    int searchHistory[NUM_PIECE_TYPES][64],
+                    int counterMove[NUM_PIECE_TYPES][64]);
     bool moveExists(int move);
 
 private:

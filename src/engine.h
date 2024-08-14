@@ -84,6 +84,7 @@ class Engine {
     // for move ordering heuristics
     int searchHistory[NUM_PIECE_TYPES][64];
     int searchKillers[MAX_SEARCH_DEPTH][2];
+    int counterMoves[NUM_PIECE_TYPES][64];
 
     // UCI options
     int hashTableSize = 128;
