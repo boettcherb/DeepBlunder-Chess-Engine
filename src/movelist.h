@@ -26,7 +26,7 @@ public:
     bool moveExists(int move);
 
 private:
-    int getMove(int from, int to, int cap, int prom, int flags) const;
+    int getMove(int from, int to, int cap, int flags) const;
     bool validMove(int move) const;
     void addPawnMove(int move, int score);
     void generatePieceMoves(int sq, uint64 attacks);
