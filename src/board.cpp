@@ -32,7 +32,7 @@ Board::Board(const std::string& fen) {
  * Getter methods to retrieve the piece on the given square, the side to move,
  * the bitboard of a given piece, the bitboard of a given color, the castle
  * permissions, the en passant square, the fifty move rule count, the current
- * position key, and the search ply.
+ * position key, the search ply, and the last move played.
  *
  */
 int Board::operator[](int index) const {
@@ -73,6 +73,11 @@ uint64 Board::getPositionKey() const {
 int Board::getSearchPly() const {
     assert(boardIsValid());
     return searchPly;
+}
+int Board::getPreviousMove() const {
+    assert(boardIsValid());
+    assert(ply == static_cast<int>(history.size()));
+    return ply == 0 ? INVALID : history.back().move;
 }
 
 

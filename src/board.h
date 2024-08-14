@@ -86,6 +86,7 @@ public:
     uint64 getPositionKey() const;
     int getSearchPly() const;
     void resetSearchPly();
+    int getPreviousMove() const;
 
     void reset();
     bool makeMove(int move);
