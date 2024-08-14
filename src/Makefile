@@ -4,7 +4,7 @@
 .PHONY: help release debug clean
 
 # Extract version from main.cpp
-VERSION := $(shell grep 'constexpr auto VERSION =' main.cpp | sed 's/constexpr auto VERSION = "//' | sed 's/";$$//')
+VERSION := $(shell grep 'constexpr auto VERSION =' main.cpp | sed 's/constexpr auto VERSION = "\(.*\)";/\1/')
 
 build_flags = -std=c++20 -Wall -Wextra -Werror -march=native
 cpp_files = $(wildcard *.cpp)
