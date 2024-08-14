@@ -79,7 +79,7 @@ int MoveList::numMoves() const {
 int MoveList::operator[](int index) const {
     assert(index >= 0 && index < static_cast<int>(moves.size()));
     assert(validMove(moves[index]));
-    return moves[index];
+    return moves[index].move;
 }
 
 
@@ -262,38 +262,10 @@ static inline constexpr int promotionScore[NUM_PIECE_TYPES] = {
 static inline constexpr int enPassantScore = 46;
 static inline constexpr int castleScore = 8;
 static inline constexpr int pawnStartScore = 7;
+static inline constexpr int pvScore = 63;
 static inline constexpr int killerScore1 = 33;
 static inline constexpr int killerScore2 = 32;
 static inline constexpr int historyScore = 9;
-
-
-/*
- *
- * Return true if two moves are the same. When comparing moves, we do not take
- * into account the move score. This is because the same move can have a
- * different score in different positions (or even the same position at
- * different depths) because the move score is updated based on how well a move
- * does in the Alpha-Beta algorithm.
- *
- */
-static bool sameMove(int m1, int m2) {
-    constexpr int mask = 0x01FFFFFF;
-    return (m1 & mask) == (m2 & mask);
-}
-
-
-/*
- *
- * Add a move (and its move score) to the MoveList. The move score is shifted
- * into the correct position and then the move is added to the back of the move
- * list.
- *
- */
-void MoveList::addMove(int move, int score) {
-    assert(validMove(move));
-    assert(score > 0 && score <= MAX_MOVE_SCORE);
-    moves.push_back(move | (score << 25));
-}
 
 
 /*
@@ -311,10 +283,10 @@ void MoveList::generatePieceMoves(int sq, uint64 attacks) {
         int to = getLSB(attacks);
         if (board[to] == INVALID) {
             int move = getMove(sq, to, INVALID, INVALID, 0);
-            addMove(move, moveScore[board[sq]]);
+            moves.emplace_back(move, moveScore[board[to]]);
         } else {
             int move = getMove(sq, to, board[to], INVALID, CAPTURE_FLAG);
-            addMove(move, captureScore[board[sq]][board[to]]);
+            moves.emplace_back(move, captureScore[board[sq]][board[to]]);
         }
         attacks &= attacks - 1;
     }
@@ -340,12 +312,12 @@ void MoveList::addPawnMove(int move, int score) {
         int bishop = pieceType[board.side()][BISHOP];
         int rook = pieceType[board.side()][ROOK];
         int queen = pieceType[board.side()][QUEEN];
-        addMove(move | (knight << 16), promotionScore[KNIGHT]);
-        addMove(move | (bishop << 16), promotionScore[BISHOP]);
-        addMove(move | (rook << 16), promotionScore[ROOK]);
-        addMove(move | (queen << 16), promotionScore[QUEEN]);
+        moves.emplace_back(move | (knight << 16), promotionScore[KNIGHT]);
+        moves.emplace_back(move | (bishop << 16), promotionScore[BISHOP]);
+        moves.emplace_back(move | (rook << 16), promotionScore[ROOK]);
+        moves.emplace_back(move | (queen << 16), promotionScore[QUEEN]);
     } else {
-        addMove(move, score);
+        moves.emplace_back(move, score);
     }
 }
 
@@ -388,18 +360,18 @@ void MoveList::generateWhitePawnMoves() {
     while (pawnStarts) {
         int to = getLSB(pawnStarts);
         int move = getMove(to - 16, to, INVALID, INVALID, PAWN_START_FLAG);
-        addMove(move, pawnStartScore);
+        moves.emplace_back(move, pawnStartScore);
         pawnStarts &= pawnStarts - 1;
     }
     int ep = board.getEnPassantSquare();
     if (ep != INVALID) {
         if (ep != 47 && board[ep - 7] == WHITE_PAWN) {
             int move = getMove(ep - 7, ep, INVALID, INVALID, EN_PASSANT_FLAG);
-            addMove(move, enPassantScore);
+            moves.emplace_back(move, enPassantScore);
         }
         if (ep != 40 && board[ep - 9] == WHITE_PAWN) {
             int move = getMove(ep - 9, ep, INVALID, INVALID, EN_PASSANT_FLAG);
-            addMove(move, enPassantScore);
+            moves.emplace_back(move, enPassantScore);
         }
     }
 }
@@ -432,18 +404,18 @@ void MoveList::generateBlackPawnMoves() {
     while (pawnStarts) {
         int to = getLSB(pawnStarts);
         int move = getMove(to + 16, to, INVALID, INVALID, PAWN_START_FLAG);
-        addMove(move, pawnStartScore);
+        moves.emplace_back(move, pawnStartScore);
         pawnStarts &= pawnStarts - 1;
     }
     int ep = board.getEnPassantSquare();
     if (ep != INVALID) {
         if (ep != 16 && board[ep + 7] == BLACK_PAWN) {
             int move = getMove(ep + 7, ep, INVALID, INVALID, EN_PASSANT_FLAG);
-            addMove(move, enPassantScore);
+            moves.emplace_back(move, enPassantScore);
         }
         if (ep != 23 && board[ep + 9] == BLACK_PAWN) {
             int move = getMove(ep + 9, ep, INVALID, INVALID, EN_PASSANT_FLAG);
-            addMove(move, enPassantScore);
+            moves.emplace_back(move, enPassantScore);
         }
     }
 }
@@ -465,13 +437,13 @@ void MoveList::generateWhiteCastleMoves() {
     if (castlePerms & CASTLE_WK) {
         if (!(allPieces & 0x60) && !board.squaresAttacked(0x70, BLACK)) {
             int move = getMove(E1, G1, INVALID, INVALID, CASTLE_FLAG);
-            addMove(move, castleScore);
+            moves.emplace_back(move, castleScore);
         }
     }
     if (castlePerms & CASTLE_WQ) {
         if (!(allPieces & 0xE) && !board.squaresAttacked(0x1C, BLACK)) {
             int move = getMove(E1, C1, INVALID, INVALID, CASTLE_FLAG);
-            addMove(move, castleScore);
+            moves.emplace_back(move, castleScore);
         }
     }
 }
@@ -482,14 +454,14 @@ void MoveList::generateBlackCastleMoves() {
         if (!(allPieces & 0x6000000000000000ULL) &&
             !board.squaresAttacked(0x7000000000000000ULL, WHITE)) {
             int move = getMove(E8, G8, INVALID, INVALID, CASTLE_FLAG);
-            addMove(move, castleScore);
+            moves.emplace_back(move, castleScore);
         }
     }
     if (castlePerms & CASTLE_BQ) {
         if (!(allPieces & 0x0E00000000000000ULL) &&
             !board.squaresAttacked(0x1C00000000000000ULL, WHITE)) {
             int move = getMove(E8, C8, INVALID, INVALID, CASTLE_FLAG);
-            addMove(move, castleScore);
+            moves.emplace_back(move, castleScore);
         }
     }
 }
@@ -511,7 +483,7 @@ void MoveList::generateBlackCastleMoves() {
  */
 void MoveList::generateMoves(const Board& b) {
     moves.clear();
-    moves.reserve(40);
+    moves.reserve(50);
     board = b;
     uint64 samePieces, allPieces = board.getColorBitboard(BOTH_COLORS);
     uint64 knights, bishops, rooks, queens, king;
@@ -591,11 +563,11 @@ void MoveList::generateWhitePawnCaptureMoves() {
     if (ep != INVALID) {
         if (ep != 47 && board[ep - 7] == WHITE_PAWN) {
             int move = getMove(ep - 7, ep, INVALID, INVALID, EN_PASSANT_FLAG);
-            addMove(move, enPassantScore);
+            moves.emplace_back(move, enPassantScore);
         }
         if (ep != 40 && board[ep - 9] == WHITE_PAWN) {
             int move = getMove(ep - 9, ep, INVALID, INVALID, EN_PASSANT_FLAG);
-            addMove(move, enPassantScore);
+            moves.emplace_back(move, enPassantScore);
         }
     }
 }
@@ -620,11 +592,11 @@ void MoveList::generateBlackPawnCaptureMoves() {
     if (ep != INVALID) {
         if (ep != 16 && board[ep + 7] == BLACK_PAWN) {
             int move = getMove(ep + 7, ep, INVALID, INVALID, EN_PASSANT_FLAG);
-            addMove(move, enPassantScore);
+            moves.emplace_back(move, enPassantScore);
         }
         if (ep != 23 && board[ep + 9] == BLACK_PAWN) {
             int move = getMove(ep + 9, ep, INVALID, INVALID, EN_PASSANT_FLAG);
-            addMove(move, enPassantScore);
+            moves.emplace_back(move, enPassantScore);
         }
     }
 }
@@ -703,27 +675,26 @@ void MoveList::generateCaptureMoves(const Board& b) {
  */
 void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
                           int searchHistory[NUM_PIECE_TYPES][64]) {
-    for (int& move : moves) {
-        if (sameMove(move, bestMove)) {
-            move |= MAX_MOVE_SCORE << 25;
+    for (Move& move : moves) {
+        if (move.move == bestMove) {
+            move.score = MAX_MOVE_SCORE;
         }
-        else if (sameMove(move, killers[board.getSearchPly()][0])) {
-            move = (move & 0x01FFFFFF) | (killerScore1 << 25);
+        else if (move.move == killers[board.getSearchPly()][0]) {
+            move.score = killerScore1;
         }
-        else if (sameMove(move, killers[board.getSearchPly()][1])) {
-            move = (move & 0x01FFFFFF) | (killerScore2 << 25);
+        else if (move.move == killers[board.getSearchPly()][1]) {
+            move.score = killerScore2;
         }
-        else if (!(move & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
-            int piece = board[move & 0x3F];
-            int to = (move >> 6) & 0x3F;
+        else if (!(move.move & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
+            int piece = board[move.move & 0x3F];
+            int to = (move.move >> 6) & 0x3F;
             if (searchHistory[piece][to] > 0) {
-                int newScore = historyScore + searchHistory[piece][to];
-                move = (move & 0x01FFFFFF) | (newScore << 25);
+                move.score = historyScore + searchHistory[piece][to];
             }
         }
     }
-    auto compareMoves = [](const int& m1, const int& m2) -> bool {
-        return (m1 >> 25) > (m2 >> 25);
+    auto compareMoves = [](const Move& m1, const Move& m2) -> bool {
+        return m1.score > m2.score;
     };
     std::sort(moves.begin(), moves.end(), compareMoves);
 }
@@ -738,9 +709,9 @@ void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
  */
 bool MoveList::moveExists(int move) {
     assert(validMove(move));
-    for (int m : moves) {
-        if (sameMove(m, move)) {
-            if (board.makeMove(m)) {
+    for (const Move& m : moves) {
+        if (m.move == move) {
+            if (board.makeMove(m.move)) {
                 board.undoMove();
                 return true;
             }

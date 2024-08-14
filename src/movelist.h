@@ -5,7 +5,14 @@
 
 class MoveList {
 
-    std::vector<int> moves;
+    struct Move {
+        int move;
+        int score;
+        Move() = default;
+        Move(int m, int s) : move{ m }, score{ s } {}
+    };
+
+    std::vector<Move> moves;
     Board board;
 
 public:
@@ -21,7 +28,6 @@ public:
 private:
     int getMove(int from, int to, int cap, int prom, int flags) const;
     bool validMove(int move) const;
-    void addMove(int move, int score);
     void addPawnMove(int move, int score);
     void generatePieceMoves(int sq, uint64 attacks);
     void generateWhiteCastleMoves();
