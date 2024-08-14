@@ -186,7 +186,7 @@ void MoveList::generatePieceMoves(int sq, uint64 attacks) {
  */
 void MoveList::addPawnMove(int move, int score) {
     assert(validMove(move));
-    assert(score > 0 && score < 0x3F);
+    assert(score > 0);
     int to = (move >> 6) & 0x3F;
     if ((1ULL << to) & 0xFF000000000000FF) {
         move = (move & 0xFFF0FFFF) | PROMOTION_FLAG;
