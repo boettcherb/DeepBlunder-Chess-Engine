@@ -1,4 +1,5 @@
 #include "engine.h"
+#include "defs.h"
 #include "board.h"
 #include "movelist.h"
 #include "hashkey.h"

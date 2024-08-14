@@ -1,4 +1,5 @@
 #include "table.h"
+#include "defs.h"
 
 
 TranspositionTable::TranspositionTable() {

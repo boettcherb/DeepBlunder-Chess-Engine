@@ -1,5 +1,6 @@
 #pragma once
 
+#include "defs.h"
 #include "board.h"
 #include "table.h"
 #include <string>
