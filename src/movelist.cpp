@@ -108,14 +108,14 @@ int MoveList::getMove(int from, int to, int cap, int flags) const {
  * the move is actually better. For example, a move where a white knight
  * captures a black queen has a higher move score than a move where a white
  * knight captures a black rook:
- *      captureScore[WHITE_KNIGHT][BLACK_QUEEN] == 61
- *      captureScore[WHITE_KNIGHT][BLACK_ROOK] == 54
+ *      captureScore[WHITE_KNIGHT][BLACK_QUEEN] == 380
+ *      captureScore[WHITE_KNIGHT][BLACK_ROOK] == 310
  * moveScore[] is for normal moves (not captures, promotions, castling, etc.).
  * For example, a pawn move (moveScore[WHITE_PAWN] == 6) is prioritized over a
  * king move (moveScore[WHITE_KING] == 1).
  * promotionScore[] is for promotion moves. A promotion to a white queen
- * (promotionScore[WHITE_QUEEN] == 62) is prioritized over a promotion to a
- * white rook (promotionScore[WHITE_ROOK] == 59).
+ * (promotionScore[WHITE_QUEEN] == 1000385) is prioritized over a promotion to
+ * a white rook (promotionScore[WHITE_ROOK] == 1000345).
  *
  */
 static inline constexpr int captureScore[NUM_PIECE_TYPES][NUM_PIECE_TYPES] = {
