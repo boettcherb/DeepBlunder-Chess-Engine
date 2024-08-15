@@ -39,6 +39,55 @@
 
 
 /*
+ *
+ * Variables storing the move score for each move type. A move with a higher
+ * move score is more likely to be better than a move with a lower move score
+ * (likely, though not always). The alpha-beta algorithm will determine whether
+ * the move is actually better. For example, a move where a white knight
+ * captures a black queen has a higher move score than a move where a white
+ * knight captures a black rook:
+ *      captureScore[WHITE_KNIGHT][BLACK_QUEEN] == 100000380
+ *      captureScore[WHITE_KNIGHT][BLACK_ROOK] == 100000310
+ * moveScore[] is for normal moves (not captures, promotions, castling, etc.).
+ * For example, a pawn move (moveScore[WHITE_PAWN] == 6) is prioritized over a
+ * king move (moveScore[WHITE_KING] == 1).
+ * promotionScore[] is for promotion moves. A promotion to a white queen
+ * (promotionScore[WHITE_QUEEN] == 100000385) is prioritized over a promotion
+ * to a white rook (promotionScore[WHITE_ROOK] == 100000345).
+ *
+ */
+static inline constexpr int captureScore[NUM_PIECE_TYPES][NUM_PIECE_TYPES] = {
+    { 0, 0, 0, 0, 0, 0, 100000150, 100000320, 100000330, 100000350, 100000390, 0 },
+    { 0, 0, 0, 0, 0, 0, 100000140, 100000240, 100000260, 100000310, 100000380, 0 },
+    { 0, 0, 0, 0, 0, 0, 100000130, 100000230, 100000250, 100000300, 100000370, 0 },
+    { 0, 0, 0, 0, 0, 0, 100000120, 100000200, 100000210, 100000270, 100000360, 0 },
+    { 0, 0, 0, 0, 0, 0, 100000110, 100000180, 100000190, 100000220, 100000280, 0 },
+    { 0, 0, 0, 0, 0, 0, 100000100, 100000160, 100000170, 100000290, 100000340, 0 },
+    { 100000150, 100000320, 100000330, 100000350, 100000390, 0, 0, 0, 0, 0, 0, 0 },
+    { 100000140, 100000240, 100000260, 100000310, 100000380, 0, 0, 0, 0, 0, 0, 0 },
+    { 100000130, 100000230, 100000250, 100000300, 100000370, 0, 0, 0, 0, 0, 0, 0 },
+    { 100000120, 100000200, 100000210, 100000270, 100000360, 0, 0, 0, 0, 0, 0, 0 },
+    { 100000110, 100000180, 100000190, 100000220, 100000280, 0, 0, 0, 0, 0, 0, 0 },
+    { 100000100, 100000160, 100000170, 100000290, 100000340, 0, 0, 0, 0, 0, 0, 0 },
+};
+static inline constexpr int moveScore[NUM_PIECE_TYPES] = {
+    6, 5, 4, 3, 2, 1, 6, 5, 4, 3, 2, 1,
+};
+static inline constexpr int promotionScore[NUM_PIECE_TYPES] = {
+    0, 100000315, 100000325, 100000345, 100000385, 0,
+    0, 100000315, 100000325, 100000345, 100000385, 0,
+};
+static inline constexpr int enPassantScore = 1000000 + 155;
+static inline constexpr int castleScore = 8;
+static inline constexpr int pawnStartScore = 7;
+static inline constexpr int pvScore = 2000000000;
+static inline constexpr int killerScore1 = 100000205;
+static inline constexpr int killerScore2 = 100000095;
+static inline constexpr int counterMoveScore = 100000105;
+static inline constexpr int historyScore = 100;
+
+
+/*
  * 
  * MoveList constructor. Given a board, fill the movelist with every legal and
  * pseudo-legal move that is available in the current position. A pseudo-legal
@@ -99,55 +148,6 @@ int MoveList::getMove(int from, int to, int cap, int flags) const {
     assert(validMove(move));
     return move;
 }
-
-/*
- *
- * Variables storing the move score for each move type. A move with a higher
- * move score is more likely to be better than a move with a lower move score
- * (likely, though not always. The alpha-beta algorithm will determine whether
- * the move is actually better. For example, a move where a white knight
- * captures a black queen has a higher move score than a move where a white
- * knight captures a black rook:
- *      captureScore[WHITE_KNIGHT][BLACK_QUEEN] == 380
- *      captureScore[WHITE_KNIGHT][BLACK_ROOK] == 310
- * moveScore[] is for normal moves (not captures, promotions, castling, etc.).
- * For example, a pawn move (moveScore[WHITE_PAWN] == 6) is prioritized over a
- * king move (moveScore[WHITE_KING] == 1).
- * promotionScore[] is for promotion moves. A promotion to a white queen
- * (promotionScore[WHITE_QUEEN] == 1000385) is prioritized over a promotion to
- * a white rook (promotionScore[WHITE_ROOK] == 1000345).
- *
- */
-static inline constexpr int captureScore[NUM_PIECE_TYPES][NUM_PIECE_TYPES] = {
-    {    0,   0,   0,   0,   0,  0, 150, 320, 330, 350, 390, 0 },
-    {    0,   0,   0,   0,   0,  0, 140, 240, 260, 310, 380, 0 },
-    {    0,   0,   0,   0,   0,  0, 130, 230, 250, 300, 370, 0 },
-    {    0,   0,   0,   0,   0,  0, 120, 200, 210, 270, 360, 0 },
-    {    0,   0,   0,   0,   0,  0, 110, 180, 190, 220, 280, 0 },
-    {    0,   0,   0,   0,   0,  0, 100, 160, 170, 290, 340, 0 },
-    {  150, 320, 330, 350, 390,  0,   0,   0,   0,   0,   0, 0 },
-    {  140, 240, 260, 310, 380,  0,   0,   0,   0,   0,   0, 0 },
-    {  130, 230, 250, 300, 370,  0,   0,   0,   0,   0,   0, 0 },
-    {  120, 200, 210, 270, 360,  0,   0,   0,   0,   0,   0, 0 },
-    {  110, 180, 190, 220, 280,  0,   0,   0,   0,   0,   0, 0 },
-    {  100, 160, 170, 290, 340,  0,   0,   0,   0,   0,   0, 0 },
-};
-static inline constexpr int moveScore[NUM_PIECE_TYPES] = {
-    6, 5, 4, 3, 2, 1, 6, 5, 4, 3, 2, 1,
-};
-static inline constexpr int promotionScore[NUM_PIECE_TYPES] = {
-    0, 1000315, 1000325, 1000345, 1000385, 0,
-    0, 1000315, 1000325, 1000345, 1000385, 0,
-};
-static inline constexpr int enPassantScore = 1000000 + 155;
-static inline constexpr int castleScore = 8;
-static inline constexpr int pawnStartScore = 7;
-static inline constexpr int pvScore = 2000000000;
-static inline constexpr int captureScoreBonus = 1000000;
-static inline constexpr int killerScore1      = 1000000 + 205;
-static inline constexpr int killerScore2      = 1000000 + 95;
-static inline constexpr int counterMoveScore  = 1000000 + 105;
-static inline constexpr int historyScore = 9;
 
 
 /*
@@ -587,10 +587,7 @@ void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
             if (searchHistory[piece][to] > 0) {
                 move.score = historyScore + searchHistory[piece][to];
             }
-            continue;
         }
-        assert(move.move & (CAPTURE_FLAG | EN_PASSANT_FLAG));
-        move.score += captureScoreBonus;
     }
     auto compareMoves = [](const Move& m1, const Move& m2) -> bool {
         assert(m1.score > 0 && m2.score > 0);

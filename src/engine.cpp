@@ -446,7 +446,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
                     int to = (bestMove >> 6) & 0x3F;
                     int piece = board[bestMove & 0x3F];
                     assert(piece != INVALID);
-                    searchHistory[piece][to] += depth;
+                    searchHistory[piece][to] += depth * depth;
                 }
             }
         }
