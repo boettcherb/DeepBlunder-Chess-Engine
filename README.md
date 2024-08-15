@@ -63,7 +63,7 @@ Here are some of the most popular ones:
 
 #### Perft Tests
 
-Currently, the UCI protocol is the only protocol this engine knows. If the first command given after running the program is not "uci", the engine will default to running its perft tests. Perft tests (performance tests) are used to debug the engine's move generation by counting the number of positions reachable from a starting position (up to a certain depth). To run the perft tests, simply enter an integer for the max depth to search to. ```3``` is recommended for the debug build and ```5``` is recommended for the release build.
+Currently, the UCI protocol is the only protocol this engine knows. If the first command given after running the program is not `uci`, the engine will default to running its perft tests. Perft tests (performance tests) are used to debug the engine's move generation by counting the number of positions reachable from a starting position (up to a certain depth). To run the perft tests, simply enter an integer for the max depth to search to. ```3``` is recommended for the debug build and ```5``` is recommended for the release build.
 
 ## Engine Strength
 
@@ -71,7 +71,8 @@ The strength of chess players and engines is measured in [ELO][elo-link].
 
 | Version | Bullet (lichess) | Blitz (lichess) | Rapid (lichess) |
 |---|---|---|---|
-| [v1.0.5][v1.0-link] | 1962 | 1879 | 1982 |
+| [v1.1.8][v1.1.8-link] | 1991 | 1869 | 2009 |
+| [v1.0.5][v1.0.5-link] | 1965 | 1879 | 1982 |
 
 ## Features
 
@@ -93,17 +94,16 @@ The strength of chess players and engines is measured in [ELO][elo-link].
 ## Upcoming Features
 
 My plans to improve this engine in the future:
- - Further improve move ordering. There are more move-ordering techniques to test out, such as the Countermove Heuristic.
  - Add more pruning methods. There are many more pruning techniques than just Alpha-Beta pruning, such as null move pruning, late move reduction (LMR), aspiration windows, futility pruning, etc.
  - Improve the evaluation function. Implement evalution based on pawn structure, king safety, piece mobility, center control, etc. Also, adjust piece-square values for the different phases of the game: opening, middlegame, and endgame.
  - Add an Opening Book (such as PolyGlot) to save clock time at the beginning of the game and to ensure a decent position.
  - Add an Endgame Database/Tablebase (such as Syzygy). Currently, DeepBlunder cannot find a win in a King+Queen vs King game, and instead draws by the 50 move rule. An endgame database will ensure best play in endgames where a checkmate is too deep in the search tree to find with a normal search.
  - Improve the transposition table. Currently, the transposition table stores only the best move in a position, and this move is used for move ordering. In the future I want to store additional information (such as the evaluation) and use it to prune redundant branches of the search tree.
- - Implement multithreading to speed up the search function.
+ - Implement multithreading to speed up the search function (Lazy SMP).
  - Improve time management. Possible Ideas:
    - If there is only one move that doesn't cause a massive disadvantage, then play it instantly.
    - If there is no more time to complete another depth in iterative deepening, then stop the search.
- - Add UCI options, such as hash size, number of threads, move overhead, and pondering. 
+ - Add UCI more options, such as number of threads and pondering. 
 
 [release-badge]: https://img.shields.io/badge/Current_Release-v1.1.6-blue
 [releases-link]: https://github.com/boettcherb/DeepBlunder-Chess-Engine/releases/latest
@@ -130,4 +130,5 @@ My plans to improve this engine in the future:
 [vice-link]: https://github.com/bluefeversoft/vice?tab=readme-ov-file
 [cpw-link]: https://www.chessprogramming.org/Main_Page
 [talkchess-link]: https://www.talkchess.com/
-[v1.0-link]: https://github.com/boettcherb/DeepBlunder-Chess-Engine/releases/tag/v1.0.0
+[v1.0.5-link]: https://github.com/boettcherb/DeepBlunder-Chess-Engine/releases/tag/v1.0.0
+[v1.1.8-link]: https://github.com/boettcherb/DeepBlunder-Chess-Engine/releases/tag/v1.1.8
