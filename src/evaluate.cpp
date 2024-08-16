@@ -3,6 +3,7 @@
 #include "attack.h"
 #include <tuple>
 
+
 /*
  *
  * pieceValue[piece][sq] gives an estimate as to how valuable a piece will be
@@ -252,8 +253,8 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * Return an evaluation of the current position. The evaluation is an integer
  * that is positive if the engine thinks that the current side to move is
  * winning, and negative if the engine thinks the current side to move is
- * losing. The evaluation is based on 100ths of a pawn. So if white is winning
- * by 1 pawn, the evaluation would be 100.
+ * losing. The evaluation is based on 100ths of a pawn. So if the side to move
+ * is winning by 1 pawn, the evaluation would be 100.
  *
  * The evaluation is based on:
  * 1) The material of each side.
@@ -261,6 +262,9 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * 3) Pawn structure:
  *      - Bonus for passed and protected pawns.
  *      - Penalty for backwards, doubled, isolated, and blocked pawns.
+ * 4) Knights:
+ *      - Bonus for every friendly blocked pawn (favor closed positions)
+ *      - Bonus for proximity to enemy king
  * 6) Rooks:
  *      - Bonus for being connected to another rook.
  *      - Bonus for being on open file.
@@ -272,9 +276,6 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * 
  * TODO:
  * 
- * 4) Knights:
- *      - Bonus for every friendly blocked pawn (favor closed positions)
- *      - Bonus for proximity to enemy king
  * 5) Bishops:
  *      - Bonus for having both bishops (bishop pair).
  *      - Bonus for being on same diagonal as enemy king/queen/rooks.
@@ -320,6 +321,7 @@ int Board::evaluatePosition() const {
     // ------------------------------------------------------------------------
     uint64 friendlyPawns = pieceBitboards[WHITE_PAWN];
     uint64 enemyPawns = pieceBitboards[BLACK_PAWN];
+    int blockedPawns = 0;
     int numTargets = 1;
     {
         int enemyKing = getLSB(pieceBitboards[BLACK_KING]);
@@ -344,10 +346,23 @@ int Board::evaluatePosition() const {
         if (pawnIsDoubled(pawn, friendlyPawns))        eval -= 5;
         if (whitePawnIsProtected(pawn, friendlyPawns)) eval += 5;
         if (whitePawnIsPassed(pawn, enemyPawns))       eval += 20;
-        if (pieces[pawn + 8] != INVALID)               eval -= 3;
-        else if (whitePawnIsBackwards(pawn, friendlyPawns, enemyPawns))
+        if (pieces[pawn + 8] != INVALID) {
+            eval -= 3;
+            ++blockedPawns;
+        } else if (whitePawnIsBackwards(pawn, friendlyPawns, enemyPawns)) {
             eval -= 10;
+        }
         whitePawns &= whitePawns - 1;
+    }
+    uint64 whiteKnights = pieceBitboards[WHITE_KNIGHT];
+    while (whiteKnights) {
+        int knight = getLSB(whiteKnights);
+        int file = knight & 0x7, rank = knight >> 3;
+        int distToKing = std::abs(file - std::get<0>(targets[0]))
+                       + std::abs(rank - std::get<1>(targets[0]));
+        eval -= 2 * distToKing;
+        whiteKnights &= whiteKnights - 1;
+        eval += blockedPawns * 3;
     }
     uint64 whiteRooks = pieceBitboards[WHITE_ROOK];
     while (whiteRooks) {
@@ -392,6 +407,7 @@ int Board::evaluatePosition() const {
     // ------------------------------------------------------------------------
     friendlyPawns = pieceBitboards[BLACK_PAWN];
     enemyPawns = pieceBitboards[WHITE_PAWN];
+    blockedPawns = 0;
     numTargets = 1;
     {
         int enemyKing = getLSB(pieceBitboards[WHITE_KING]);
@@ -416,10 +432,23 @@ int Board::evaluatePosition() const {
         if (pawnIsDoubled(pawn, friendlyPawns))        eval += 5;
         if (blackPawnIsProtected(pawn, friendlyPawns)) eval -= 5;
         if (blackPawnIsPassed(pawn, enemyPawns))       eval -= 20;
-        if (pieces[pawn - 8] != INVALID)               eval += 3;
-        else if (blackPawnIsBackwards(pawn, friendlyPawns, enemyPawns))
+        if (pieces[pawn - 8] != INVALID) {
+            eval += 3;
+            ++blockedPawns;
+        } else if (blackPawnIsBackwards(pawn, friendlyPawns, enemyPawns)) {
             eval += 10;
+        }
         blackPawns &= blackPawns - 1;
+    }
+    uint64 blackKnights = pieceBitboards[BLACK_KNIGHT];
+    while (blackKnights) {
+        int knight = getLSB(blackKnights);
+        int file = knight & 0x7, rank = knight >> 3;
+        int distToKing = std::abs(file - std::get<0>(targets[0]))
+            + std::abs(rank - std::get<1>(targets[0]));
+        eval += 2 * distToKing;
+        blackKnights &= blackKnights - 1;
+        eval -= blockedPawns * 3;
     }
     uint64 blackRooks = pieceBitboards[BLACK_ROOK];
     while (blackRooks) {
