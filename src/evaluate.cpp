@@ -1,6 +1,8 @@
 #include "defs.h"
 #include "board.h"
-
+#include "movelist.h"
+#include "attack.h"
+#include <tuple>
 
 /*
  *
@@ -46,7 +48,7 @@ static inline constexpr char pieceValue[NUM_PIECE_TYPES][64] = {
         -20,  0,   0,  0,  0,   0,  0, -20,
     },
     { // white rook
-         0,  0,  5, 20, 20,  5,  0,  0,
+         0,  0,  5,  5,  5,  5,  0,  0,
          0,  0,  5,  5,  5,  5,  0,  0,
          0,  0,  5,  5,  5,  5,  0,  0,
          0,  0,  5,  5,  5,  5,  0,  0,
@@ -113,7 +115,7 @@ static inline constexpr char pieceValue[NUM_PIECE_TYPES][64] = {
          0,  0,  5,  5,  5,  5,  0,  0,
          0,  0,  5,  5,  5,  5,  0,  0,
          0,  0,  5,  5,  5,  5,  0,  0,
-         0,  0,  5, 20, 20,  5,  0,  0,
+         0,  0,  5,  5,  5,  5,  0,  0,
     },
     { // black queen
         0, 0,  0,  0,  0,  0, 0, 0,
@@ -176,6 +178,28 @@ static inline constexpr uint64 adjFiles[8] = {
 
 
 /*
+ * 
+ * Evaluation bonus for proximity to a target. For example, if a rook is on the
+ * same file as the enemy king, that rook will get a bonus of distBonus[0] (the
+ * file distance is 0).
+ * 
+ */
+static char distBonus[8] = { 4, 2, 1, 0, 0, 0, 0, 0 };
+
+
+/*
+ * 
+ * Store the locations (file and rank) of the enemey targets (kings, queens,
+ * rooks and queen(s), as well as a multiplier value. These locations are
+ * compared against the locations of friendly pieces. Pieces on the same
+ * rank, file, or diagonal as the enemy king/queen get an evaluation bonus,
+ * times the multiplier value
+ *
+ */
+static std::tuple<int, int, int> targets[12];
+
+
+/*
  *
  * Pawn evaluations. Determine if a pawn is isolated, doubled, protected,
  * passed, or backwards. Isolated, doubled, and backwards pawns get a penalty
@@ -235,19 +259,22 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * 1) The material of each side.
  * 2) The value of a piece on a certain square, given by the pieceValue array.
  * 3) Pawn structure:
- *      - Bonus is given for passed and protected pawns
- *      - Penalty is given for backwards, doubled, isolated, and blocked pawns
+ *      - Bonus for passed and protected pawns.
+ *      - Penalty for backwards, doubled, isolated, and blocked pawns.
+ * 6) Rooks:
+ *      - Bonus for being connected to another rook.
+ *      - Bonus for being on open file.
+ *      - Bonus for being on same rank/file as enemy king or queen.
+ * 
  * 
  * TODO: 
- * 4) King Safety:
+ * King Safety:
  *      - Penalty for too many open files/diagonals around the king
  *      - Penalty for not enough pawns in front of the king
  *      - Penalty for enemy pawns too close to king
  *      - Penalty for enemy pieces attacking squares around the king
  *      - Penalty for not being castled
- * 5) Pieces
- *      - Rooks get a bonus for being connected and for being on the same rank
- *        / file as the enemy king
+ * Pieces
  *      - Bishops get a bonus if both are still on board (bishop pair), for
  *        being on the same diagonal as the king, and for having more enemy
  *        pawns on the same color and friendly pawns on the opposite color.
@@ -262,22 +289,47 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  */
 int Board::evaluatePosition() const {
     assert(boardIsValid());
+    const uint64 allPieces = colorBitboards[BOTH_COLORS];
     int eval = material[WHITE] - material[BLACK];
-    uint64 whitePieces = colorBitboards[WHITE];
-    while (whitePieces) {
-        int square = getLSB(whitePieces);
-        eval += pieceValue[pieces[square]][square];
-        whitePieces &= whitePieces - 1;
+    {
+        // TODO: see if I can delete these if I loop through every
+        // piece in other parts of this function
+        uint64 whitePieces = colorBitboards[WHITE];
+        while (whitePieces) {
+            int square = getLSB(whitePieces);
+            eval += pieceValue[pieces[square]][square];
+            whitePieces &= whitePieces - 1;
+        }
+        uint64 blackPieces = colorBitboards[BLACK];
+        while (blackPieces) {
+            int square = getLSB(blackPieces);
+            eval -= pieceValue[pieces[square]][square];
+            blackPieces &= blackPieces - 1;
+        }
     }
-    uint64 blackPieces = colorBitboards[BLACK];
-    while (blackPieces) {
-        int square = getLSB(blackPieces);
-        eval -= pieceValue[pieces[square]][square];
-        blackPieces &= blackPieces - 1;
-    }
-    uint64 whitePawns = pieceBitboards[WHITE_PAWN];
+    // ------------------------------------------------------------------------
+    // ---------------------------- WHITE -------------------------------------
+    // ------------------------------------------------------------------------
     uint64 friendlyPawns = pieceBitboards[WHITE_PAWN];
     uint64 enemyPawns = pieceBitboards[BLACK_PAWN];
+    int numTargets = 1;
+    {
+        int enemyKing = getLSB(pieceBitboards[BLACK_KING]);
+        targets[0] = { enemyKing & 0x7, enemyKing >> 3, 4 };
+        uint64 enemyQueens = pieceBitboards[BLACK_QUEEN];
+        uint64 enemyRooks = pieceBitboards[BLACK_ROOK];
+        while (enemyQueens) {
+            int queen = getLSB(enemyQueens);
+            targets[numTargets++] = { queen & 0x7, queen >> 3, 3 };
+            enemyQueens &= enemyQueens - 1;
+        }
+        while (enemyRooks) {
+            int rook = getLSB(enemyRooks);
+            targets[numTargets++] = { rook & 0x7, rook >> 3, 1 };
+            enemyRooks &= enemyRooks - 1;
+        }
+    }
+    uint64 whitePawns = pieceBitboards[WHITE_PAWN];
     while (whitePawns) {
         int pawn = getLSB(whitePawns);
         if (pawnIsIsolated(pawn, friendlyPawns))       eval -= 15;
@@ -289,9 +341,49 @@ int Board::evaluatePosition() const {
             eval -= 10;
         whitePawns &= whitePawns - 1;
     }
-    uint64 blackPawns = pieceBitboards[BLACK_PAWN];
+    uint64 whiteRooks = pieceBitboards[WHITE_ROOK];
+    while (whiteRooks) {
+        int rook = getLSB(whiteRooks);
+        uint64 attacks = attack::getRookAttacks(rook, allPieces);
+        assert(!((1ULL << rook) & attacks));
+        if (attacks & pieceBitboards[WHITE_ROOK]) {
+            eval += 7;
+        }
+        int file = rook & 0x7, rank = rook >> 3;
+        if (!(sameFile[file] & friendlyPawns)) {
+            eval += 20;
+        }
+        for (int target = 0; target < numTargets; ++target) {
+            const auto& [targetFile, targetRank, mult] = targets[target];
+            int minDist = std::min(std::abs(file - targetFile),
+                                   std::abs(rank - targetRank));
+            eval += distBonus[minDist] * mult;
+        }
+        whiteRooks &= whiteRooks - 1;
+    }
+    // ------------------------------------------------------------------------
+    // ---------------------------- BLACK -------------------------------------
+    // ------------------------------------------------------------------------
     friendlyPawns = pieceBitboards[BLACK_PAWN];
     enemyPawns = pieceBitboards[WHITE_PAWN];
+    numTargets = 1;
+    {
+        int enemyKing = getLSB(pieceBitboards[WHITE_KING]);
+        targets[0] = { enemyKing & 0x7, enemyKing >> 3, 4 };
+        uint64 enemyQueens = pieceBitboards[WHITE_QUEEN];
+        uint64 enemyRooks = pieceBitboards[WHITE_ROOK];
+        while (enemyQueens) {
+            int queen = getLSB(enemyQueens);
+            targets[numTargets++] = { queen & 0x7, queen >> 3, 3 };
+            enemyQueens &= enemyQueens - 1;
+        }
+        while (enemyRooks) {
+            int rook = getLSB(enemyRooks);
+            targets[numTargets++] = { rook & 0x7, rook >> 3, 1 };
+            enemyRooks &= enemyRooks - 1;
+        }
+    }
+    uint64 blackPawns = pieceBitboards[BLACK_PAWN];
     while (blackPawns) {
         int pawn = getLSB(blackPawns);
         if (pawnIsIsolated(pawn, friendlyPawns))       eval += 15;
@@ -302,6 +394,26 @@ int Board::evaluatePosition() const {
         else if (blackPawnIsBackwards(pawn, friendlyPawns, enemyPawns))
             eval += 10;
         blackPawns &= blackPawns - 1;
+    }
+    uint64 blackRooks = pieceBitboards[BLACK_ROOK];
+    while (blackRooks) {
+        int rook = getLSB(blackRooks);
+        uint64 attacks = attack::getRookAttacks(rook, allPieces);
+        assert(!((1ULL << rook) & attacks));
+        if (attacks & pieceBitboards[BLACK_ROOK]) {
+            eval += 7;
+        }
+        int file = rook & 0x7, rank = rook >> 3;
+        if (!(sameFile[file] & friendlyPawns)) {
+            eval += 20;
+        }
+        for (int target = 0; target < numTargets; ++target) {
+            const auto& [targetFile, targetRank, mult] = targets[target];
+            int minDist = std::min(std::abs(file - targetFile),
+                                   std::abs(rank - targetRank));
+            eval += distBonus[minDist] * mult;
+        }
+        blackRooks &= blackRooks - 1;
     }
     return sideToMove == WHITE ? eval : -eval;
 }
