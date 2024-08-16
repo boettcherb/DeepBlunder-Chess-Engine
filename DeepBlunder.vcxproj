@@ -139,6 +139,7 @@
     <None Include="src\Makefile" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\debug.cpp" />
     <ClCompile Include="src\attack.cpp" />
     <ClCompile Include="src\board.cpp" />
     <ClCompile Include="src\boardstring.cpp" />

@@ -1,12 +1,17 @@
 #pragma once
 
+using uint64 = unsigned long long;
+
 #include <string>
 #include <cassert>
+
 #if !defined(NDEBUG)
 #include <iostream>
+    // debug.cpp
+    void printBitboard(uint64 bitboard);
+    std::string getSquareString(int square);
 #endif
 
-using uint64 = unsigned long long;
 
 enum Color {
     WHITE, BLACK, BOTH_COLORS,

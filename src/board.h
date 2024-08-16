@@ -94,10 +94,10 @@ public:
     bool squaresAttacked(uint64 squares, int side) const;
     bool isRepetition() const;
 
-    // Evaluate.cpp
+    // evaluate.cpp
     int evaluatePosition() const;
 
-    // BoardString.cpp
+    // bardstring.cpp
     std::string getMoveString(int move) const;
     bool setToFEN(const std::string& fen);
 
@@ -106,5 +106,7 @@ private:
     void clearPiece(int square);
     void movePiece(int from, int to);
     uint64 generatePositionKey() const;
+
+    // debug.cpp
     bool boardIsValid() const;
 };

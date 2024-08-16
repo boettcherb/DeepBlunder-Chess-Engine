@@ -29,7 +29,6 @@ public:
 
 private:
     int getMove(int from, int to, int cap, int flags) const;
-    bool validMove(int move) const;
     void addPawnMove(int move, int score);
     void generatePieceMoves(int sq, uint64 attacks);
     void generateWhiteCastleMoves();
@@ -38,4 +37,7 @@ private:
     void generateBlackPawnMoves();
     void generateWhitePawnCaptureMoves();
     void generateBlackPawnCaptureMoves();
+
+    // debug.cpp
+    bool validMove(int move) const;
 };
