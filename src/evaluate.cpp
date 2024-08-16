@@ -1,6 +1,5 @@
 #include "defs.h"
 #include "board.h"
-#include "movelist.h"
 #include "attack.h"
 #include <tuple>
 
@@ -184,7 +183,7 @@ static inline constexpr uint64 adjFiles[8] = {
  * file distance is 0).
  * 
  */
-static char distBonus[8] = { 4, 2, 1, 0, 0, 0, 0, 0 };
+static inline constexpr char distBonus[8] = { 4, 2, 1, 0, 0, 0, 0, 0 };
 
 
 /*
@@ -251,11 +250,12 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
 /*
  *
  * Return an evaluation of the current position. The evaluation is an integer
- * that is positive if the engine thinks that white is winning, and negative if
- * the engine thinks that black is winning. The evaluation is based on 100ths
- * of a pawn. So if white is winning by 1 pawn, the evaluation would be 100.
+ * that is positive if the engine thinks that the current side to move is
+ * winning, and negative if the engine thinks the current side to move is
+ * losing. The evaluation is based on 100ths of a pawn. So if white is winning
+ * by 1 pawn, the evaluation would be 100.
  *
- * Currently, the evaluation is based on:
+ * The evaluation is based on:
  * 1) The material of each side.
  * 2) The value of a piece on a certain square, given by the pieceValue array.
  * 3) Pawn structure:
@@ -264,28 +264,36 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * 6) Rooks:
  *      - Bonus for being connected to another rook.
  *      - Bonus for being on open file.
- *      - Bonus for being on same rank/file as enemy king or queen.
+ *      - Bonus for being on same rank/file as enemy king/queen.
+ * 7) Queens:
+ *      - Bonus for being on same file/rank/diagonal as enemy king/rooks.
+ *      - Bonus for proximity to enemy king.
  * 
  * 
- * TODO: 
- * King Safety:
+ * TODO:
+ * 
+ * 4) Knights:
+ *      - Bonus for every friendly blocked pawn (favor closed positions)
+ *      - Bonus for proximity to enemy king
+ * 5) Bishops:
+ *      - Bonus for having both bishops (bishop pair).
+ *      - Bonus for being on same diagonal as enemy king/queen/rooks.
+ *      - Bonus for friendly pawns on opposite color
+ *      - Penalty for friendly pawns on same color
+ *      - Penalty for being blocked by a friendly pawn.
+ * 8) King Safety:
  *      - Penalty for too many open files/diagonals around the king
+ *        (length of diagonal matters)
  *      - Penalty for not enough pawns in front of the king
  *      - Penalty for enemy pawns too close to king
  *      - Penalty for enemy pieces attacking squares around the king
  *      - Penalty for not being castled
- * Pieces
- *      - Bishops get a bonus if both are still on board (bishop pair), for
- *        being on the same diagonal as the king, and for having more enemy
- *        pawns on the same color and friendly pawns on the opposite color.
- *      - Knights get a bonus for every blocked pawn on the board and for there
- *        being more pawns on the board
- *      - Queens get a bonus for proximity to enemy king and for being on same
- *      - rank/file/diagonal as enemy king.
+ * 9) Mobility:
  *      - all pieces get a large penalty if they are very immobile (< 2 moves
  *        available). Encorporate enemy pawn attacks into this.
  *      - Each side gets a mobility score: the side with the most move choices
  *        gets a bonus
+ * 
  */
 int Board::evaluatePosition() const {
     assert(boardIsValid());
@@ -361,6 +369,24 @@ int Board::evaluatePosition() const {
         }
         whiteRooks &= whiteRooks - 1;
     }
+    uint64 whiteQueens = pieceBitboards[WHITE_QUEEN];
+    while (whiteQueens) {
+        int queen = getLSB(whiteQueens);
+        int file = queen & 0x7, rank = queen >> 3;
+        for (int target = 0; target < numTargets; ++target) {
+            const auto& [targetFile, targetRank, mult] = targets[target];
+            int minDist = std::min(std::abs(file - targetFile),
+                                   std::abs(rank - targetRank));
+            eval += distBonus[minDist] * mult;
+            minDist = std::abs(std::abs(file - targetFile) -
+                               std::abs(rank - targetRank));
+            eval += distBonus[minDist] * mult;
+        }
+        int distToKing = std::abs(file - std::get<0>(targets[0]))
+                       + std::abs(rank - std::get<1>(targets[0]));
+        eval -= 2 * distToKing;
+        whiteQueens &= whiteQueens - 1;
+    }
     // ------------------------------------------------------------------------
     // ---------------------------- BLACK -------------------------------------
     // ------------------------------------------------------------------------
@@ -401,19 +427,37 @@ int Board::evaluatePosition() const {
         uint64 attacks = attack::getRookAttacks(rook, allPieces);
         assert(!((1ULL << rook) & attacks));
         if (attacks & pieceBitboards[BLACK_ROOK]) {
-            eval += 7;
+            eval -= 7;
         }
         int file = rook & 0x7, rank = rook >> 3;
         if (!(sameFile[file] & friendlyPawns)) {
-            eval += 20;
+            eval -= 20;
         }
         for (int target = 0; target < numTargets; ++target) {
             const auto& [targetFile, targetRank, mult] = targets[target];
             int minDist = std::min(std::abs(file - targetFile),
                                    std::abs(rank - targetRank));
-            eval += distBonus[minDist] * mult;
+            eval -= distBonus[minDist] * mult;
         }
         blackRooks &= blackRooks - 1;
+    }
+    uint64 blackQueens = pieceBitboards[BLACK_QUEEN];
+    while (blackQueens) {
+        int queen = getLSB(blackQueens);
+        int file = queen & 0x7, rank = queen >> 3;
+        for (int target = 0; target < numTargets; ++target) {
+            const auto& [targetFile, targetRank, mult] = targets[target];
+            int minDist = std::min(std::abs(file - targetFile),
+                                   std::abs(rank - targetRank));
+            eval -= distBonus[minDist] * mult;
+            minDist = std::abs(std::abs(file - targetFile) -
+                               std::abs(rank - targetRank));
+            eval -= distBonus[minDist] * mult;
+        }
+        int distToKing = std::abs(file - std::get<0>(targets[0]))
+                       + std::abs(rank - std::get<1>(targets[0]));
+        eval += 2 * distToKing;
+        blackQueens &= blackQueens - 1;
     }
     return sideToMove == WHITE ? eval : -eval;
 }
