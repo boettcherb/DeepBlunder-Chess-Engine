@@ -313,22 +313,6 @@ int Board::evaluatePosition() const {
     assert(boardIsValid());
     const uint64 allPieces = colorBitboards[BOTH_COLORS];
     int eval = material[WHITE] - material[BLACK];
-    {
-        // TODO: see if I can delete these if I loop through every
-        // piece in other parts of this function
-        uint64 whitePieces = colorBitboards[WHITE];
-        while (whitePieces) {
-            int square = getLSB(whitePieces);
-            eval += pieceValue[pieces[square]][square];
-            whitePieces &= whitePieces - 1;
-        }
-        uint64 blackPieces = colorBitboards[BLACK];
-        while (blackPieces) {
-            int square = getLSB(blackPieces);
-            eval -= pieceValue[pieces[square]][square];
-            blackPieces &= blackPieces - 1;
-        }
-    }
     // ------------------------------------------------------------------------
     // ---------------------------- WHITE -------------------------------------
     // ------------------------------------------------------------------------
@@ -356,6 +340,7 @@ int Board::evaluatePosition() const {
     uint64 whitePawns = pieceBitboards[WHITE_PAWN];
     while (whitePawns) {
         int pawn = getLSB(whitePawns);
+        eval += pieceValue[WHITE_PAWN][pawn];
         if (pawnIsIsolated(pawn, friendlyPawns))                   eval -= 15;
         if (pawnIsDoubled(pawn, friendlyPawns))                    eval -= 5;
         if (whitePawnIsProtected(pawn, friendlyPawns))             eval += 5;
@@ -371,6 +356,7 @@ int Board::evaluatePosition() const {
     uint64 whiteKnights = pieceBitboards[WHITE_KNIGHT];
     while (whiteKnights) {
         int knight = getLSB(whiteKnights);
+        eval += pieceValue[WHITE_KNIGHT][knight];
         int file = knight & 0x7, rank = knight >> 3;
         int distToKing = std::abs(file - std::get<0>(targets[0]))
                        + std::abs(rank - std::get<1>(targets[0]));
@@ -383,6 +369,7 @@ int Board::evaluatePosition() const {
     bool hasLightBishop = false, hasDarkBishop = false;
     while (whiteBishops) {
         int bishop = getLSB(whiteBishops);
+        eval += pieceValue[WHITE_BISHOP][bishop];
         int file = bishop & 0x7, rank = bishop >> 3;
         for (int target = 0; target < numTargets; ++target) {
             const auto& [targetFile, targetRank, mult] = targets[target];
@@ -412,6 +399,7 @@ int Board::evaluatePosition() const {
     uint64 whiteRooks = pieceBitboards[WHITE_ROOK];
     while (whiteRooks) {
         int rook = getLSB(whiteRooks);
+        eval += pieceValue[WHITE_ROOK][rook];
         uint64 attacks = attack::getRookAttacks(rook, allPieces);
         assert(!((1ULL << rook) & attacks));
         if (attacks & pieceBitboards[WHITE_ROOK]) {
@@ -433,6 +421,7 @@ int Board::evaluatePosition() const {
     uint64 whiteQueens = pieceBitboards[WHITE_QUEEN];
     while (whiteQueens) {
         int queen = getLSB(whiteQueens);
+        eval += pieceValue[WHITE_QUEEN][queen];
         int file = queen & 0x7, rank = queen >> 3;
         for (int target = 0; target < numTargets; ++target) {
             const auto& [targetFile, targetRank, mult] = targets[target];
@@ -448,6 +437,7 @@ int Board::evaluatePosition() const {
         eval -= 2 * distToKing;
         whiteQueens &= whiteQueens - 1;
     }
+    eval += pieceValue[WHITE_KING][getLSB(pieceBitboards[WHITE_KING])];
     // ------------------------------------------------------------------------
     // ---------------------------- BLACK -------------------------------------
     // ------------------------------------------------------------------------
@@ -475,6 +465,7 @@ int Board::evaluatePosition() const {
     uint64 blackPawns = pieceBitboards[BLACK_PAWN];
     while (blackPawns) {
         int pawn = getLSB(blackPawns);
+        eval -= pieceValue[BLACK_PAWN][pawn];
         if (pawnIsIsolated(pawn, friendlyPawns))                   eval += 15;
         if (pawnIsDoubled(pawn, friendlyPawns))                    eval += 5;
         if (blackPawnIsProtected(pawn, friendlyPawns))             eval -= 5;
@@ -490,6 +481,7 @@ int Board::evaluatePosition() const {
     uint64 blackKnights = pieceBitboards[BLACK_KNIGHT];
     while (blackKnights) {
         int knight = getLSB(blackKnights);
+        eval -= pieceValue[BLACK_KNIGHT][knight];
         int file = knight & 0x7, rank = knight >> 3;
         int distToKing = std::abs(file - std::get<0>(targets[0]))
             + std::abs(rank - std::get<1>(targets[0]));
@@ -502,6 +494,7 @@ int Board::evaluatePosition() const {
     hasLightBishop = false, hasDarkBishop = false;
     while (blackBishops) {
         int bishop = getLSB(blackBishops);
+        eval -= pieceValue[BLACK_BISHOP][bishop];
         int file = bishop & 0x7, rank = bishop >> 3;
         for (int target = 0; target < numTargets; ++target) {
             const auto& [targetFile, targetRank, mult] = targets[target];
@@ -531,6 +524,7 @@ int Board::evaluatePosition() const {
     uint64 blackRooks = pieceBitboards[BLACK_ROOK];
     while (blackRooks) {
         int rook = getLSB(blackRooks);
+        eval -= pieceValue[BLACK_ROOK][rook];
         uint64 attacks = attack::getRookAttacks(rook, allPieces);
         assert(!((1ULL << rook) & attacks));
         if (attacks & pieceBitboards[BLACK_ROOK]) {
@@ -552,6 +546,7 @@ int Board::evaluatePosition() const {
     uint64 blackQueens = pieceBitboards[BLACK_QUEEN];
     while (blackQueens) {
         int queen = getLSB(blackQueens);
+        eval -= pieceValue[BLACK_QUEEN][queen];
         int file = queen & 0x7, rank = queen >> 3;
         for (int target = 0; target < numTargets; ++target) {
             const auto& [targetFile, targetRank, mult] = targets[target];
@@ -567,5 +562,6 @@ int Board::evaluatePosition() const {
         eval += 2 * distToKing;
         blackQueens &= blackQueens - 1;
     }
+    eval -= pieceValue[BLACK_KING][getLSB(pieceBitboards[BLACK_KING])];
     return sideToMove == WHITE ? eval : -eval;
 }
