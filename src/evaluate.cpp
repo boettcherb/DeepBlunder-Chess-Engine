@@ -356,15 +356,14 @@ int Board::evaluatePosition() const {
     uint64 whitePawns = pieceBitboards[WHITE_PAWN];
     while (whitePawns) {
         int pawn = getLSB(whitePawns);
-        if (pawnIsIsolated(pawn, friendlyPawns))       eval -= 15;
-        if (pawnIsDoubled(pawn, friendlyPawns))        eval -= 5;
-        if (whitePawnIsProtected(pawn, friendlyPawns)) eval += 5;
-        if (whitePawnIsPassed(pawn, enemyPawns))       eval += 20;
+        if (pawnIsIsolated(pawn, friendlyPawns))                   eval -= 15;
+        if (pawnIsDoubled(pawn, friendlyPawns))                    eval -= 5;
+        if (whitePawnIsProtected(pawn, friendlyPawns))             eval += 5;
+        if (whitePawnIsPassed(pawn, enemyPawns))                   eval += 20;
+        if (whitePawnIsBackwards(pawn, friendlyPawns, enemyPawns)) eval -= 10;
         if (pieces[pawn + 8] != INVALID) {
             eval -= 3;
             ++blockedPawns;
-        } else if (whitePawnIsBackwards(pawn, friendlyPawns, enemyPawns)) {
-            eval -= 10;
         }
         whitePawns &= whitePawns - 1;
     }
@@ -476,15 +475,14 @@ int Board::evaluatePosition() const {
     uint64 blackPawns = pieceBitboards[BLACK_PAWN];
     while (blackPawns) {
         int pawn = getLSB(blackPawns);
-        if (pawnIsIsolated(pawn, friendlyPawns))       eval += 15;
-        if (pawnIsDoubled(pawn, friendlyPawns))        eval += 5;
-        if (blackPawnIsProtected(pawn, friendlyPawns)) eval -= 5;
-        if (blackPawnIsPassed(pawn, enemyPawns))       eval -= 20;
+        if (pawnIsIsolated(pawn, friendlyPawns))                   eval += 15;
+        if (pawnIsDoubled(pawn, friendlyPawns))                    eval += 5;
+        if (blackPawnIsProtected(pawn, friendlyPawns))             eval -= 5;
+        if (blackPawnIsPassed(pawn, enemyPawns))                   eval -= 20;
+        if (blackPawnIsBackwards(pawn, friendlyPawns, enemyPawns)) eval += 10;
         if (pieces[pawn - 8] != INVALID) {
             eval += 3;
             ++blockedPawns;
-        } else if (blackPawnIsBackwards(pawn, friendlyPawns, enemyPawns)) {
-            eval += 10;
         }
         blackPawns &= blackPawns - 1;
     }
@@ -520,7 +518,7 @@ int Board::evaluatePosition() const {
             eval -= countBits(lightSquares & friendlyPawns) * 2;
             eval += countBits(darkSquares & friendlyPawns) * 2;
         }
-        uint64 blockers = (1ULL << (bishop + 7)) | (1ULL << (bishop + 9));
+        uint64 blockers = (1ULL << (bishop - 7)) | (1ULL << (bishop - 9));
         if (blockers & friendlyPawns) {
             eval += 10;
         }
