@@ -329,8 +329,6 @@ static inline bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * 
  */
 int Board::evaluatePosition() const {
-    std::cout << "Center:\n";
-    printBitboard(CENTER);
     assert(boardIsValid());
     const uint64 allPieces = colorBitboards[BOTH_COLORS];
     int eval = material[WHITE] - material[BLACK];
@@ -389,7 +387,7 @@ int Board::evaluatePosition() const {
         centerControlScore += countBits(attacks & CENTER);
         int file = knight & 0x7, rank = knight >> 3;
         int distToKing = std::abs(file - std::get<0>(targets[0]))
-                       + std::abs(rank - std::get<1>(targets[0]));
+            + std::abs(rank - std::get<1>(targets[0]));
         eval += 2 * (10 - distToKing);
         eval += blockedPawns * 3;
         whiteKnights &= whiteKnights - 1;
@@ -407,7 +405,7 @@ int Board::evaluatePosition() const {
         for (int target = 0; target < numTargets; ++target) {
             const auto& [targetFile, targetRank, mult] = targets[target];
             int dist = std::abs(std::abs(file - targetFile) -
-                               std::abs(rank - targetRank));
+                                std::abs(rank - targetRank));
             eval += distBonus[dist] * mult;
         }
         if ((file & 0x1) ^ (rank & 0x1)) {
@@ -470,7 +468,7 @@ int Board::evaluatePosition() const {
             eval += distBonus[minDist] * mult;
         }
         int distToKing = std::abs(file - std::get<0>(targets[0]))
-                       + std::abs(rank - std::get<1>(targets[0]));
+            + std::abs(rank - std::get<1>(targets[0]));
         eval += 2 * (10 - distToKing);
         whiteQueens &= whiteQueens - 1;
     }
@@ -481,9 +479,8 @@ int Board::evaluatePosition() const {
     control |= kingAttacks;
     centerControlScore += countBits(kingAttacks & CENTER);
     eval += centerControlScore * 2;
-
-    // TODO: control around enemy king
-
+    uint64 aroundEnemyKing = attack::getKingAttacks(pieceBitboards[BLACK_KING]);
+    eval += countBits(aroundEnemyKing & control) * 7;
     // ------------------------------------------------------------------------
     // ---------------------------- BLACK -------------------------------------
     // ------------------------------------------------------------------------
@@ -632,8 +629,7 @@ int Board::evaluatePosition() const {
     control |= kingAttacks;
     centerControlScore += countBits(kingAttacks & CENTER);
     eval -= centerControlScore * 2;
-
-    // TODO: control around enemy king
-
+    aroundEnemyKing = attack::getKingAttacks(pieceBitboards[WHITE_KING]);
+    eval += countBits(aroundEnemyKing & control) * 7;
     return sideToMove == WHITE ? eval : -eval;
 }
