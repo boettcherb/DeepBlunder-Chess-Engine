@@ -194,10 +194,9 @@ static inline constexpr char distBonus[8] = { 4, 2, 1, 0, 0, 0, 0, 0 };
 /*
  * 
  * Store the locations (file and rank) of the enemey targets (kings, queens,
- * rooks and queen(s), as well as a multiplier value. These locations are
- * compared against the locations of friendly pieces. Pieces on the same
- * rank, file, or diagonal as the enemy king/queen get an evaluation bonus,
- * times the multiplier value
+ * rooks, as well as a multiplier value. These locations are compared against
+ * the locations of friendly pieces. Pieces on the same rank, file, or diagonal
+ * as the enemy targets get an evaluation bonus, times the multiplier value.
  *
  */
 static std::tuple<int, int, int> targets[12];
@@ -360,7 +359,7 @@ int Board::evaluatePosition() const {
         int file = knight & 0x7, rank = knight >> 3;
         int distToKing = std::abs(file - std::get<0>(targets[0]))
                        + std::abs(rank - std::get<1>(targets[0]));
-        eval -= 2 * distToKing;
+        eval += 2 * (10 - distToKing);
         eval += blockedPawns * 3;
         whiteKnights &= whiteKnights - 1;
     }
@@ -434,7 +433,7 @@ int Board::evaluatePosition() const {
         }
         int distToKing = std::abs(file - std::get<0>(targets[0]))
                        + std::abs(rank - std::get<1>(targets[0]));
-        eval -= 2 * distToKing;
+        eval += 2 * (10 - distToKing);
         whiteQueens &= whiteQueens - 1;
     }
     eval += pieceValue[WHITE_KING][getLSB(pieceBitboards[WHITE_KING])];
@@ -485,7 +484,7 @@ int Board::evaluatePosition() const {
         int file = knight & 0x7, rank = knight >> 3;
         int distToKing = std::abs(file - std::get<0>(targets[0]))
             + std::abs(rank - std::get<1>(targets[0]));
-        eval += 2 * distToKing;
+        eval -= 2 * (10 - distToKing);
         eval -= blockedPawns * 3;
         blackKnights &= blackKnights - 1;
     }
@@ -559,7 +558,7 @@ int Board::evaluatePosition() const {
         }
         int distToKing = std::abs(file - std::get<0>(targets[0]))
                        + std::abs(rank - std::get<1>(targets[0]));
-        eval += 2 * distToKing;
+        eval -= 2 * (10 - distToKing);
         blackQueens &= blackQueens - 1;
     }
     eval -= pieceValue[BLACK_KING][getLSB(pieceBitboards[BLACK_KING])];
