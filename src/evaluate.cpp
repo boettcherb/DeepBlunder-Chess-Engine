@@ -5,6 +5,21 @@
 
 
 /*
+ * 
+ * Return a bitboard with exactly one bit set corresponding to the given square
+ * index (0 to 63). If 'square' is outside of this range, return 0 to prevent
+ * undefined behavior.
+ * 
+ */
+static inline constexpr uint64 BB(int square) {
+    if (square < 0 || square >= 64) {
+        return 0;
+    }
+    return 1ULL << square;
+}
+
+
+/*
  *
  * pieceValue[piece][sq] gives an estimate as to how valuable a piece will be
  * when placed on the square sq. This is used for the evaluatePosition()
@@ -209,52 +224,54 @@ static std::tuple<int, int, int> targets[12];
  * to their evaluation, while protected and passed pawns get a bonus.
  *
  */
-static bool pawnIsIsolated(int square, uint64 friendlyPawns) {
-    assert(square > 0 && square < 64);
+static inline bool pawnIsIsolated(int square, uint64 friendlyPawns) {
+    assert(square >= 8 && square < 56);
     return !(friendlyPawns & sideFiles[square & 0x7]);
 }
-static bool pawnIsDoubled(int square, uint64 friendlyPawns) {
-    assert(square > 0 && square < 64);
+static inline bool pawnIsDoubled(int square, uint64 friendlyPawns) {
+    assert(square >= 8 && square < 56);
     return countBits(sameFile[square & 0x7] & friendlyPawns) > 1;
 }
-static bool whitePawnIsProtected(int square, uint64 friendlyPawns) {
-    assert(square > 0 && square < 64);
-    uint64 protectionSquares =
-        ((1ULL << (square - 7)) & 0xFEFEFEFEFEFEFEFE) |
-        ((1ULL << (square - 9)) & 0x7F7F7F7F7F7F7F7F);
+static inline bool whitePawnIsProtected(int square, uint64 friendlyPawns) {
+    assert(square >= 8 && square < 56);
+    uint64 protectionSquares = (BB(square - 7) & 0xFEFEFEFEFEFEFEFE)
+        | (BB(square - 9) & 0x7F7F7F7F7F7F7F7F);
     return friendlyPawns & protectionSquares;
 }
-static bool blackPawnIsProtected(int square, uint64 friendlyPawns) {
-    assert(square > 0 && square < 64);
-    uint64 protectionSquares =
-        (1ULL << (square + 7)) & 0x7F7F7F7F7F7F7F7F |
-        (1ULL << (square + 9)) & 0xFEFEFEFEFEFEFEFE;
+static inline bool blackPawnIsProtected(int square, uint64 friendlyPawns) {
+    assert(square >= 8 && square < 56);
+    uint64 protectionSquares = (BB(square + 7) & 0x7F7F7F7F7F7F7F7F)
+        | (BB(square + 9) & 0xFEFEFEFEFEFEFEFE);
     return friendlyPawns & protectionSquares;
 }
-static bool whitePawnIsPassed(int square, uint64 enemyPawns) {
-    assert(square > 0 && square < 64);
+static inline bool whitePawnIsPassed(int square, uint64 enemyPawns) {
+    assert(square >= 8 && square < 56);
     int file = square & 0x7, rank = square >> 3;
+    assert(rank > 0 && rank < 7);
     return !(enemyPawns & (adjFiles[file] << ((rank + 1) << 3)));
 }
-static bool blackPawnIsPassed(int square, uint64 enemyPawns) {
-    assert(square > 0 && square < 64);
+static inline bool blackPawnIsPassed(int square, uint64 enemyPawns) {
+    assert(square >= 8 && square < 56);
     int file = square & 0x7, rank = square >> 3;
+    assert(rank > 0 && rank < 7);
     return !(enemyPawns & (adjFiles[file] >> ((8 - rank) << 3)));
 }
-static bool whitePawnIsBackwards(int square, uint64 friendlyPawns,
+static inline bool whitePawnIsBackwards(int square, uint64 friendlyPawns,
                                  uint64 enemyPawns) {
-    assert(square > 0 && square < 64);
+    assert(square >= 8 && square < 56);
     int file = square & 0x7, rank = square >> 3;
+    assert(rank > 0 && rank < 7);
     uint64 behind = sideFiles[file] >> ((7 - rank) << 3);
-    uint64 blockers = (1ULL << (square + 15)) | (1ULL << (square + 17));
+    uint64 blockers = BB(square + 15) | BB(square + 17);
     return !(behind & friendlyPawns) && (blockers & enemyPawns);
 }
-static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
+static inline bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
                                  uint64 enemyPawns) {
-    assert(square > 0 && square < 64);
+    assert(square >= 8 && square < 56);
     int file = square & 0x7, rank = square >> 3;
+    assert(rank > 0 && rank < 7);
     uint64 behind = sideFiles[file] << (rank << 3);
-    uint64 blockers = (1ULL << (square - 15)) | (1ULL << (square - 17));
+    uint64 blockers = BB(square - 15) | BB(square - 17);
     return !(behind & friendlyPawns) && (blockers & enemyPawns);
 }
 
@@ -385,7 +402,7 @@ int Board::evaluatePosition() const {
             eval += countBits(lightSquares & friendlyPawns) * 2;
             eval -= countBits(darkSquares & friendlyPawns) * 2;
         }
-        uint64 blockers = (1ULL << (bishop + 7)) | (1ULL << (bishop + 9));
+        uint64 blockers = BB(bishop + 7) | BB(bishop + 9);
         if (blockers & friendlyPawns) {
             eval -= 10;
         }
@@ -400,7 +417,7 @@ int Board::evaluatePosition() const {
         int rook = getLSB(whiteRooks);
         eval += pieceValue[WHITE_ROOK][rook];
         uint64 attacks = attack::getRookAttacks(rook, allPieces);
-        assert(!((1ULL << rook) & attacks));
+        assert(!(BB(rook) & attacks));
         if (attacks & pieceBitboards[WHITE_ROOK]) {
             eval += 7;
         }
@@ -510,7 +527,7 @@ int Board::evaluatePosition() const {
             eval -= countBits(lightSquares & friendlyPawns) * 2;
             eval += countBits(darkSquares & friendlyPawns) * 2;
         }
-        uint64 blockers = (1ULL << (bishop - 7)) | (1ULL << (bishop - 9));
+        uint64 blockers = BB(bishop - 7) | BB(bishop - 9);
         if (blockers & friendlyPawns) {
             eval += 10;
         }
@@ -525,7 +542,7 @@ int Board::evaluatePosition() const {
         int rook = getLSB(blackRooks);
         eval -= pieceValue[BLACK_ROOK][rook];
         uint64 attacks = attack::getRookAttacks(rook, allPieces);
-        assert(!((1ULL << rook) & attacks));
+        assert(!(BB(rook) & attacks));
         if (attacks & pieceBitboards[BLACK_ROOK]) {
             eval -= 7;
         }
