@@ -140,6 +140,10 @@ static inline constexpr char pieceValue[NUM_PIECE_TYPES][64] = {
 };
 
 
+static inline constexpr uint64 lightSquares = 0x55AA55AA55AA55AA;
+static inline constexpr uint64 darkSquares = 0xAA55AA55AA55AA55;
+
+
 /*
  * 
  * Bitboards representing files: sameFile[i] is the i'th file, sideFiles[i] is
@@ -207,33 +211,40 @@ static std::tuple<int, int, int> targets[12];
  *
  */
 static bool pawnIsIsolated(int square, uint64 friendlyPawns) {
+    assert(square > 0 && square < 64);
     return !(friendlyPawns & sideFiles[square & 0x7]);
 }
 static bool pawnIsDoubled(int square, uint64 friendlyPawns) {
+    assert(square > 0 && square < 64);
     return countBits(sameFile[square & 0x7] & friendlyPawns) > 1;
 }
 static bool whitePawnIsProtected(int square, uint64 friendlyPawns) {
+    assert(square > 0 && square < 64);
     uint64 protectionSquares =
         ((1ULL << (square - 7)) & 0xFEFEFEFEFEFEFEFE) |
         ((1ULL << (square - 9)) & 0x7F7F7F7F7F7F7F7F);
     return friendlyPawns & protectionSquares;
 }
 static bool blackPawnIsProtected(int square, uint64 friendlyPawns) {
+    assert(square > 0 && square < 64);
     uint64 protectionSquares =
         (1ULL << (square + 7)) & 0x7F7F7F7F7F7F7F7F |
         (1ULL << (square + 9)) & 0xFEFEFEFEFEFEFEFE;
     return friendlyPawns & protectionSquares;
 }
 static bool whitePawnIsPassed(int square, uint64 enemyPawns) {
+    assert(square > 0 && square < 64);
     int file = square & 0x7, rank = square >> 3;
     return !(enemyPawns & (adjFiles[file] << ((rank + 1) << 3)));
 }
 static bool blackPawnIsPassed(int square, uint64 enemyPawns) {
+    assert(square > 0 && square < 64);
     int file = square & 0x7, rank = square >> 3;
     return !(enemyPawns & (adjFiles[file] >> ((8 - rank) << 3)));
 }
 static bool whitePawnIsBackwards(int square, uint64 friendlyPawns,
                                  uint64 enemyPawns) {
+    assert(square > 0 && square < 64);
     int file = square & 0x7, rank = square >> 3;
     uint64 behind = sideFiles[file] >> ((7 - rank) << 3);
     uint64 blockers = (1ULL << (square + 15)) | (1ULL << (square + 17));
@@ -241,6 +252,7 @@ static bool whitePawnIsBackwards(int square, uint64 friendlyPawns,
 }
 static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
                                  uint64 enemyPawns) {
+    assert(square > 0 && square < 64);
     int file = square & 0x7, rank = square >> 3;
     uint64 behind = sideFiles[file] << (rank << 3);
     uint64 blockers = (1ULL << (square - 15)) | (1ULL << (square - 17));
@@ -265,6 +277,12 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * 4) Knights:
  *      - Bonus for every friendly blocked pawn (favor closed positions)
  *      - Bonus for proximity to enemy king
+ * 5) Bishops:
+ *      - Bonus for having both bishops (bishop pair).
+ *      - Bonus for being on same diagonal as enemy king/queen/rooks.
+ *      - Bonus for friendly pawns on opposite color
+ *      - Penalty for friendly pawns on same color
+ *      - Penalty for being blocked by a friendly pawn.
  * 6) Rooks:
  *      - Bonus for being connected to another rook.
  *      - Bonus for being on open file.
@@ -276,12 +294,7 @@ static bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * 
  * TODO:
  * 
- * 5) Bishops:
- *      - Bonus for having both bishops (bishop pair).
- *      - Bonus for being on same diagonal as enemy king/queen/rooks.
- *      - Bonus for friendly pawns on opposite color
- *      - Penalty for friendly pawns on same color
- *      - Penalty for being blocked by a friendly pawn.
+ * 
  * 8) King Safety:
  *      - Penalty for too many open files/diagonals around the king
  *        (length of diagonal matters)
@@ -339,6 +352,7 @@ int Board::evaluatePosition() const {
             enemyRooks &= enemyRooks - 1;
         }
     }
+    // ------------------------------------------------------------------------
     uint64 whitePawns = pieceBitboards[WHITE_PAWN];
     while (whitePawns) {
         int pawn = getLSB(whitePawns);
@@ -354,6 +368,7 @@ int Board::evaluatePosition() const {
         }
         whitePawns &= whitePawns - 1;
     }
+    // ------------------------------------------------------------------------
     uint64 whiteKnights = pieceBitboards[WHITE_KNIGHT];
     while (whiteKnights) {
         int knight = getLSB(whiteKnights);
@@ -361,9 +376,40 @@ int Board::evaluatePosition() const {
         int distToKing = std::abs(file - std::get<0>(targets[0]))
                        + std::abs(rank - std::get<1>(targets[0]));
         eval -= 2 * distToKing;
-        whiteKnights &= whiteKnights - 1;
         eval += blockedPawns * 3;
+        whiteKnights &= whiteKnights - 1;
     }
+    // ------------------------------------------------------------------------
+    uint64 whiteBishops = pieceBitboards[WHITE_BISHOP];
+    bool hasLightBishop = false, hasDarkBishop = false;
+    while (whiteBishops) {
+        int bishop = getLSB(whiteBishops);
+        int file = bishop & 0x7, rank = bishop >> 3;
+        for (int target = 0; target < numTargets; ++target) {
+            const auto& [targetFile, targetRank, mult] = targets[target];
+            int dist = std::abs(std::abs(file - targetFile) -
+                               std::abs(rank - targetRank));
+            eval += distBonus[dist] * mult;
+        }
+        if ((file & 0x1) ^ (rank & 0x1)) {
+            hasLightBishop = true;
+            eval -= countBits(lightSquares & friendlyPawns) * 2;
+            eval += countBits(darkSquares & friendlyPawns) * 2;
+        } else {
+            hasDarkBishop = true;
+            eval += countBits(lightSquares & friendlyPawns) * 2;
+            eval -= countBits(darkSquares & friendlyPawns) * 2;
+        }
+        uint64 blockers = (1ULL << (bishop + 7)) | (1ULL << (bishop + 9));
+        if (blockers & friendlyPawns) {
+            eval -= 10;
+        }
+        whiteBishops &= whiteBishops - 1;
+    }
+    if (hasLightBishop && hasDarkBishop) {
+        eval += 16;
+    }
+    // ------------------------------------------------------------------------
     uint64 whiteRooks = pieceBitboards[WHITE_ROOK];
     while (whiteRooks) {
         int rook = getLSB(whiteRooks);
@@ -384,6 +430,7 @@ int Board::evaluatePosition() const {
         }
         whiteRooks &= whiteRooks - 1;
     }
+    // ------------------------------------------------------------------------
     uint64 whiteQueens = pieceBitboards[WHITE_QUEEN];
     while (whiteQueens) {
         int queen = getLSB(whiteQueens);
@@ -425,6 +472,7 @@ int Board::evaluatePosition() const {
             enemyRooks &= enemyRooks - 1;
         }
     }
+    // ------------------------------------------------------------------------
     uint64 blackPawns = pieceBitboards[BLACK_PAWN];
     while (blackPawns) {
         int pawn = getLSB(blackPawns);
@@ -440,6 +488,7 @@ int Board::evaluatePosition() const {
         }
         blackPawns &= blackPawns - 1;
     }
+    // ------------------------------------------------------------------------
     uint64 blackKnights = pieceBitboards[BLACK_KNIGHT];
     while (blackKnights) {
         int knight = getLSB(blackKnights);
@@ -447,9 +496,40 @@ int Board::evaluatePosition() const {
         int distToKing = std::abs(file - std::get<0>(targets[0]))
             + std::abs(rank - std::get<1>(targets[0]));
         eval += 2 * distToKing;
-        blackKnights &= blackKnights - 1;
         eval -= blockedPawns * 3;
+        blackKnights &= blackKnights - 1;
     }
+    // ------------------------------------------------------------------------
+    uint64 blackBishops = pieceBitboards[BLACK_BISHOP];
+    hasLightBishop = false, hasDarkBishop = false;
+    while (blackBishops) {
+        int bishop = getLSB(blackBishops);
+        int file = bishop & 0x7, rank = bishop >> 3;
+        for (int target = 0; target < numTargets; ++target) {
+            const auto& [targetFile, targetRank, mult] = targets[target];
+            int dist = std::abs(std::abs(file - targetFile) -
+                                std::abs(rank - targetRank));
+            eval -= distBonus[dist] * mult;
+        }
+        if ((file & 0x1) ^ (rank & 0x1)) {
+            hasLightBishop = true;
+            eval += countBits(lightSquares & friendlyPawns) * 2;
+            eval -= countBits(darkSquares & friendlyPawns) * 2;
+        } else {
+            hasDarkBishop = true;
+            eval -= countBits(lightSquares & friendlyPawns) * 2;
+            eval += countBits(darkSquares & friendlyPawns) * 2;
+        }
+        uint64 blockers = (1ULL << (bishop + 7)) | (1ULL << (bishop + 9));
+        if (blockers & friendlyPawns) {
+            eval += 10;
+        }
+        blackBishops &= blackBishops - 1;
+    }
+    if (hasLightBishop && hasDarkBishop) {
+        eval -= 16;
+    }
+    // ------------------------------------------------------------------------
     uint64 blackRooks = pieceBitboards[BLACK_ROOK];
     while (blackRooks) {
         int rook = getLSB(blackRooks);
@@ -470,6 +550,7 @@ int Board::evaluatePosition() const {
         }
         blackRooks &= blackRooks - 1;
     }
+    // ------------------------------------------------------------------------
     uint64 blackQueens = pieceBitboards[BLACK_QUEEN];
     while (blackQueens) {
         int queen = getLSB(blackQueens);
