@@ -118,7 +118,7 @@ void Board::reset() {
     castlePerms = 0xF;
     enPassantSquare = INVALID;
     ply = searchPly = fiftyMoveCount = 0;
-    material[0] = material[1] = 4010;
+    material[0] = material[1] = startingMaterial;
     positionKey = generatePositionKey();
     history.clear();
 }

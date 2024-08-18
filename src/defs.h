@@ -71,6 +71,7 @@ inline constexpr int pieceColor[NUM_PIECE_TYPES] = {
 inline constexpr int pieceMaterial[NUM_PIECE_TYPES] = {
     100, 325, 330, 500, 900, 0, 100, 325, 330, 500, 900, 0
 };
+inline constexpr int startingMaterial = 4010;
 
 inline constexpr int pieceType[Color::BOTH_COLORS][NUM_PIECE_TYPES] = {
     {
