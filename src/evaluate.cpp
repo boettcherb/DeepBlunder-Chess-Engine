@@ -199,6 +199,16 @@ static inline constexpr uint64 adjFiles[8] = {
 
 /*
  * 
+ * Penalty applied for having limited mobility. For example, if a piece has 0
+ * possible moves it gets a penalty of 30, and if it has 1 move it gets a
+ * penalty of 20.
+ * 
+ */
+static inline constexpr int mobilityPenalty[32] = { 30, 20, 4, 1, };
+
+
+/*
+ * 
  * Evaluation bonus for proximity to a target. For example, if a rook is on the
  * same file as the enemy king, that rook will get a bonus of distBonus[0] (the
  * file distance is 0).
@@ -307,36 +317,37 @@ static inline bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * 7) Queens:
  *      - Bonus for being on same file/rank/diagonal as enemy king/rooks.
  *      - Bonus for proximity to enemy king.
+ * 8) King Safety:
+ *      - Penalty for enemy pieces attacking squares around the king.
  * 9) Control / Mobility:
- *      - Bonus for controlling central squares
+ *      - Bonus for controlling central squares.
+ *      - Penalty for pieces being very immobile (<2 moves available).
  * 
  * 
  * TODO:
  * 
  * 
- * 8) King Safety:
  *      - Penalty for too many open files/diagonals around the king
  *        (length of diagonal matters)
  *      - Penalty for not enough pawns in front of the king
  *      - Penalty for enemy pawns too close to king
- *      - Penalty for enemy pieces attacking squares around the king
  *      - Penalty for not being castled
- * 9) Control / Mobility:
- *      - all pieces get a large penalty if they are very immobile (< 2 moves
- *        available). Encorporate enemy pawn attacks into this.
- *      - Each side gets a mobility score: the side with the most move choices
- *        gets a bonus
  * 
  */
 int Board::evaluatePosition() const {
     assert(boardIsValid());
     const uint64 allPieces = colorBitboards[BOTH_COLORS];
+    uint64 wpal = attack::getWhitePawnAttacksLeft(pieceBitboards[WHITE_PAWN]);
+    uint64 wpar = attack::getWhitePawnAttacksRight(pieceBitboards[WHITE_PAWN]);
+    uint64 bpal = attack::getBlackPawnAttacksLeft(pieceBitboards[BLACK_PAWN]);
+    uint64 bpar = attack::getBlackPawnAttacksRight(pieceBitboards[BLACK_PAWN]);
     int eval = material[WHITE] - material[BLACK];
     // ------------------------------------------------------------------------
     // ---------------------------- WHITE -------------------------------------
     // ------------------------------------------------------------------------
     uint64 friendlyPawns = pieceBitboards[WHITE_PAWN];
     uint64 enemyPawns = pieceBitboards[BLACK_PAWN];
+    uint64 friendlyPieces = colorBitboards[WHITE];
     uint64 control = 0;
     int centerControlScore = 0;
     int blockedPawns = 0;
@@ -359,10 +370,9 @@ int Board::evaluatePosition() const {
     }
     // ------------------------------------------------------------------------
     uint64 whitePawns = pieceBitboards[WHITE_PAWN];
-    uint64 whitePawnAttacks = attack::getWhitePawnAttacksLeft(whitePawns)
-        | attack::getWhitePawnAttacksRight(whitePawns);
-    control |= whitePawnAttacks;
-    centerControlScore += countBits(whitePawnAttacks & CENTER) * 4;
+    control |= wpal | wpar;
+    centerControlScore += countBits(wpal & CENTER) * 3;
+    centerControlScore += countBits(wpar & CENTER) * 3;
     while (whitePawns) {
         int pawn = getLSB(whitePawns);
         eval += pieceValue[WHITE_PAWN][pawn];
@@ -390,6 +400,10 @@ int Board::evaluatePosition() const {
             + std::abs(rank - std::get<1>(targets[0]));
         eval += 2 * (10 - distToKing);
         eval += blockedPawns * 3;
+
+        attacks &= ~friendlyPieces;
+        attacks &= ~(bpal | bpar);
+        eval -= mobilityPenalty[countBits(attacks)];
         whiteKnights &= whiteKnights - 1;
     }
     // ------------------------------------------------------------------------
@@ -421,6 +435,9 @@ int Board::evaluatePosition() const {
         if (blockers & friendlyPawns) {
             eval -= 10;
         }
+        attacks &= ~friendlyPieces;
+        attacks &= ~(bpal | bpar);
+        eval -= mobilityPenalty[countBits(attacks)];
         whiteBishops &= whiteBishops - 1;
     }
     if (hasLightBishop && hasDarkBishop) {
@@ -447,6 +464,9 @@ int Board::evaluatePosition() const {
                                    std::abs(rank - targetRank));
             eval += distBonus[minDist] * mult;
         }
+        attacks &= ~friendlyPieces;
+        attacks &= ~(bpal | bpar);
+        eval -= mobilityPenalty[countBits(attacks)];
         whiteRooks &= whiteRooks - 1;
     }
     // ------------------------------------------------------------------------
@@ -470,12 +490,15 @@ int Board::evaluatePosition() const {
         int distToKing = std::abs(file - std::get<0>(targets[0]))
             + std::abs(rank - std::get<1>(targets[0]));
         eval += 2 * (10 - distToKing);
+        attacks &= ~friendlyPieces;
+        attacks &= ~(bpal | bpar);
+        eval -= mobilityPenalty[countBits(attacks)];
         whiteQueens &= whiteQueens - 1;
     }
-    uint64 whiteKing = pieceBitboards[WHITE_KING];
-    int whiteKingSq = getLSB(pieceBitboards[WHITE_KING]);
-    eval += pieceValue[WHITE_KING][whiteKingSq];
-    uint64 kingAttacks = attack::getKingAttacks(whiteKing);
+    uint64 whiteKingBB = pieceBitboards[WHITE_KING];
+    int whiteKing = getLSB(pieceBitboards[WHITE_KING]);
+    eval += pieceValue[WHITE_KING][whiteKing];
+    uint64 kingAttacks = attack::getKingAttacks(whiteKingBB);
     control |= kingAttacks;
     centerControlScore += countBits(kingAttacks & CENTER);
     eval += centerControlScore * 2;
@@ -486,6 +509,7 @@ int Board::evaluatePosition() const {
     // ------------------------------------------------------------------------
     friendlyPawns = pieceBitboards[BLACK_PAWN];
     enemyPawns = pieceBitboards[WHITE_PAWN];
+    friendlyPieces = colorBitboards[BLACK];
     control = 0;
     centerControlScore = 0;
     blockedPawns = 0;
@@ -508,10 +532,9 @@ int Board::evaluatePosition() const {
     }
     // ------------------------------------------------------------------------
     uint64 blackPawns = pieceBitboards[BLACK_PAWN];
-    uint64 blackPawnAttacks = attack::getBlackPawnAttacksLeft(blackPawns)
-        | attack::getBlackPawnAttacksRight(blackPawns);
-    control |= blackPawnAttacks;
-    centerControlScore += countBits(blackPawnAttacks & CENTER) * 4;
+    control |= bpal | bpar;
+    centerControlScore += countBits(bpal & CENTER) * 3;
+    centerControlScore += countBits(bpar & CENTER) * 3;
     while (blackPawns) {
         int pawn = getLSB(blackPawns);
         eval -= pieceValue[BLACK_PAWN][pawn];
@@ -539,6 +562,9 @@ int Board::evaluatePosition() const {
             + std::abs(rank - std::get<1>(targets[0]));
         eval -= 2 * (10 - distToKing);
         eval -= blockedPawns * 3;
+        attacks &= ~friendlyPieces;
+        attacks &= ~(wpal | wpar);
+        eval -= mobilityPenalty[countBits(attacks)];
         blackKnights &= blackKnights - 1;
     }
     // ------------------------------------------------------------------------
@@ -570,6 +596,9 @@ int Board::evaluatePosition() const {
         if (blockers & friendlyPawns) {
             eval += 10;
         }
+        attacks &= ~friendlyPieces;
+        attacks &= ~(wpal | wpar);
+        eval -= mobilityPenalty[countBits(attacks)];
         blackBishops &= blackBishops - 1;
     }
     if (hasLightBishop && hasDarkBishop) {
@@ -597,6 +626,9 @@ int Board::evaluatePosition() const {
                                    std::abs(rank - targetRank));
             eval -= distBonus[minDist] * mult;
         }
+        attacks &= ~friendlyPieces;
+        attacks &= ~(wpal | wpar);
+        eval -= mobilityPenalty[countBits(attacks)];
         blackRooks &= blackRooks - 1;
     }
     // ------------------------------------------------------------------------
@@ -620,12 +652,15 @@ int Board::evaluatePosition() const {
         int distToKing = std::abs(file - std::get<0>(targets[0]))
                        + std::abs(rank - std::get<1>(targets[0]));
         eval -= 2 * (10 - distToKing);
+        attacks &= ~friendlyPieces;
+        attacks &= ~(wpal | wpar);
+        eval -= mobilityPenalty[countBits(attacks)];
         blackQueens &= blackQueens - 1;
     }
-    uint64 blackKing = pieceBitboards[WHITE_KING];
-    int blackKingSq = getLSB(pieceBitboards[WHITE_KING]);
-    eval -= pieceValue[BLACK_KING][blackKingSq];
-    kingAttacks = attack::getKingAttacks(blackKing);
+    uint64 blackKingBB = pieceBitboards[WHITE_KING];
+    int blackKing = getLSB(pieceBitboards[WHITE_KING]);
+    eval -= pieceValue[BLACK_KING][blackKing];
+    kingAttacks = attack::getKingAttacks(blackKingBB);
     control |= kingAttacks;
     centerControlScore += countBits(kingAttacks & CENTER);
     eval -= centerControlScore * 2;
