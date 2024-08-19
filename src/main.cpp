@@ -6,7 +6,7 @@
 #include <sstream>
 #include <chrono>
 
-constexpr auto VERSION = "v1.1.9";
+constexpr auto VERSION = "v1.2.0";
 
 
 static void search(Engine& engine, SearchInfo info) {

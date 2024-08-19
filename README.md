@@ -56,9 +56,9 @@ This engine uses the [UCI Protocol][uci-link] to communicate with users and GUIs
 
 Instead of using the console and having to send the position every move, you can instead download a GUI to automate the process (and so you can actually see the board).
 
-Here are some of the most popular ones:
+Here are some of the most popular (free) ones:
 - [Arena][arena-gui-link]
-- [CuteChess][cutechess-gui-link]
+- [CuteChess][cutechess-gui-link] (my favorite)
 - [Tarrasch][tarrasch-gui-link]
 
 #### Perft Tests
@@ -87,15 +87,12 @@ The strength of chess players and engines is measured in [ELO][elo-link].
     - [MVV-LVA][mvv-lva-link]
     - [Killer Move heuristic][killer-link]
     - [History Heuristic][history-link]
- - Very Basic Evaluation:
-    - Material counts
-    - [Piece-Square tables][piece-square-link]
+ - Hand-crafted evaluation function: Material counts, [Piece-Square tables][piece-square-link], pawn structure, king safety, piece activity, piece mobility, center control, etc.
 
 ## Upcoming Features
 
 My plans to improve this engine in the future:
  - Add more pruning methods. There are many more pruning techniques than just Alpha-Beta pruning, such as null move pruning, late move reduction (LMR), aspiration windows, futility pruning, etc.
- - Improve the evaluation function. Implement evalution based on pawn structure, king safety, piece mobility, center control, etc. Also, adjust piece-square values for the different phases of the game: opening, middlegame, and endgame.
  - Add an Opening Book (such as PolyGlot) to save clock time at the beginning of the game and to ensure a decent position.
  - Add an Endgame Database/Tablebase (such as Syzygy). Currently, DeepBlunder cannot find a win in a King+Queen vs King game, and instead draws by the 50 move rule. An endgame database will ensure best play in endgames where a checkmate is too deep in the search tree to find with a normal search.
  - Improve the transposition table. Currently, the transposition table stores only the best move in a position, and this move is used for move ordering. In the future I want to store additional information (such as the evaluation) and use it to prune redundant branches of the search tree.
@@ -104,8 +101,9 @@ My plans to improve this engine in the future:
    - If there is only one move that doesn't cause a massive disadvantage, then play it instantly.
    - If there is no more time to complete another depth in iterative deepening, then stop the search.
  - Add UCI more options, such as number of threads and pondering. 
+ - Move from hand-crafted evaluation to NNUE.
 
-[release-badge]: https://img.shields.io/badge/Current_Release-v1.1.6-blue
+[release-badge]: https://img.shields.io/badge/Current_Release-v1.2.0-blue
 [releases-link]: https://github.com/boettcherb/DeepBlunder-Chess-Engine/releases/latest
 [lichess-link]: https://lichess.org/@/DeepBlunder-Bot
 [uci-link]: https://www.wbec-ridderkerk.nl/html/UCIProtocol.html
