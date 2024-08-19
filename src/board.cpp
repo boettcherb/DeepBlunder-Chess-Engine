@@ -136,9 +136,9 @@ void Board::addPiece(int square, int piece) {
     assert(pieces[square] == INVALID);
     pieces[square] = piece;
     uint64 mask = 1ULL << square;
-    pieceBitboards[piece] |= mask;
-    colorBitboards[pieceColor[piece]] |= mask;
-    colorBitboards[BOTH_COLORS] |= mask;
+    pieceBitboards[piece] ^= mask;
+    colorBitboards[pieceColor[piece]] ^= mask;
+    colorBitboards[BOTH_COLORS] ^= mask;
     material[pieceColor[piece]] += pieceMaterial[piece];
     positionKey ^= hashkey::getPieceKey(piece, square);
 }
@@ -155,10 +155,10 @@ void Board::clearPiece(int square) {
     assert(pieces[square] != INVALID);
     int piece = pieces[square];
     pieces[square] = INVALID;
-    uint64 mask = ~(1ULL << square);
-    pieceBitboards[piece] &= mask;
-    colorBitboards[pieceColor[piece]] &= mask;
-    colorBitboards[BOTH_COLORS] &= mask;
+    uint64 mask = 1ULL << square;
+    pieceBitboards[piece] ^= mask;
+    colorBitboards[pieceColor[piece]] ^= mask;
+    colorBitboards[BOTH_COLORS] ^= mask;
     material[pieceColor[piece]] -= pieceMaterial[piece];
     positionKey ^= hashkey::getPieceKey(piece, square);
 }
@@ -180,14 +180,10 @@ void Board::movePiece(int from, int to) {
     int piece = pieces[from];
     pieces[to] = piece;
     pieces[from] = INVALID;
-    uint64 setMask = 1ULL << to;
-    uint64 clearMask = ~(1ULL << from);
-    pieceBitboards[piece] |= setMask;
-    pieceBitboards[piece] &= clearMask;
-    colorBitboards[pieceColor[piece]] |= setMask;
-    colorBitboards[pieceColor[piece]] &= clearMask;
-    colorBitboards[BOTH_COLORS] |= setMask;
-    colorBitboards[BOTH_COLORS] &= clearMask;
+    uint64 mask = (1ULL << to) | (1ULL << from);
+    pieceBitboards[piece] ^= mask;
+    colorBitboards[pieceColor[piece]] ^= mask;
+    colorBitboards[BOTH_COLORS] ^= mask;
     positionKey ^= hashkey::getPieceKey(piece, from);
     positionKey ^= hashkey::getPieceKey(piece, to);
 }
