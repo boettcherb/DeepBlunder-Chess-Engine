@@ -185,6 +185,14 @@ bool Board::boardIsValid() const {
     if (castlePerms & 0xFFFFFFF0) {
         std::cerr << "Invalid castle permissions (5)" << std::endl;
     }
+    if (castlePerms & (CASTLE_WK | CASTLE_WQ) && hasCastled[WHITE]) {
+        std::cerr << "Incorrect hasCastled value (1)" << std::endl;
+        return false;
+    }
+    if (castlePerms & (CASTLE_BK | CASTLE_BQ) && hasCastled[BLACK]) {
+        std::cerr << "Incorrect hasCastled value (2)" << std::endl;
+        return false;
+    }
     uint64 pawns = pieceBitboards[WHITE_PAWN] | pieceBitboards[BLACK_PAWN];
     if (pawns & 0xFF000000000000FF) {
         std::cerr << "Pawns are on the 1st or 8th rank" << std::endl;

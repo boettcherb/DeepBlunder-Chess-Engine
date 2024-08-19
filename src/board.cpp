@@ -271,6 +271,8 @@ bool Board::makeMove(int move) {
                 case C8: movePiece(A8, D8); break;
                 default: assert(false);
             }
+            assert(!hasCastled[sideToMove]);
+            hasCastled[sideToMove] = true;
             break;
         case PAWN_START_FLAG:
             enPassantSquare = (to + from) / 2;
@@ -328,6 +330,8 @@ void Board::undoMove() {
                 case G8: movePiece(F8, H8); break;
                 case C8: movePiece(D8, A8); break;
             }
+            assert(hasCastled[sideToMove]);
+            hasCastled[sideToMove] = false;
             break;
         case EN_PASSANT_FLAG:
             addPiece(to + sideToMove * 16 - 8, pieceType[!sideToMove][PAWN]);

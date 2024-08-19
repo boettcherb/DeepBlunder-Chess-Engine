@@ -47,6 +47,7 @@ const inline std::string START_POS =
  * positionKey:       A 64-bit integer that is used as a hash key into the
  *                    board's transposition table. Updated incrementally as
  *                    moves are made and unmade.
+ * hasCastled:        Two booleans storing whether each side has castled
  * 
  */
 class Board {
@@ -71,6 +72,7 @@ class Board {
     int material[2];
     std::vector<PrevMove> history;
     uint64 positionKey;
+    bool hasCastled[2];
 
 public:
     Board() = default;
