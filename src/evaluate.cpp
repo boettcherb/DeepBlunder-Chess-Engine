@@ -634,6 +634,7 @@ int Board::evaluatePosition() const {
     if (!(diagRight & friendlyPawns)) {
         eval -= static_cast<int>(3 * countBits(diagRight) * materialFactor);
     }
+    eval -= static_cast<int>(50 * !hasCastled[WHITE] * materialFactor);
     // ------------------------------------------------------------------------
     // ---------------------------- BLACK -------------------------------------
     // ------------------------------------------------------------------------
@@ -820,5 +821,6 @@ int Board::evaluatePosition() const {
     if (!(diagRight & friendlyPawns)) {
         eval += static_cast<int>(3 * countBits(diagRight) * materialFactor);
     }
+    eval += static_cast<int>(50 * !hasCastled[BLACK] * materialFactor);
     return sideToMove == WHITE ? eval : -eval;
 }
