@@ -168,6 +168,18 @@ static inline constexpr char pieceValue[NUM_PIECE_TYPES][64] = {
     },
 };
 
+// endgame pieceSquare table for king
+static inline constexpr char eg_kingValue[64] = {
+    -20, -20, -20, -20, -20, -20, -20, -20,
+    -20, -10, -10, -10, -10, -10, -10, -20,
+    -20,   0,   0,   0,   0,   0,   0, -20,
+    -20,   0,  10,  10,  10,  10,   0, -20,
+    -20,   0,  10,  10,  10,  10,   0, -20,
+    -20,   0,   0,   0,   0,   0,   0, -20,
+    -20, -10, -10, -10, -10, -10, -10, -20,
+    -20, -20, -20, -20, -20, -20, -20, -20,
+};
+
 
 /*
  * 
@@ -424,17 +436,11 @@ int blackKingCoveragePenalty(int blackKing, uint64 friendlyPawns,
  *      - Penalty for open files around the king
  *      - Penalty for pushing pawns in front of the king
  *      - Penalty for open diagonals around the king (length of diagonal matters)
+ *      - Penalty for not being castled
  *      - King safety concerns lesson as remaining enemy material decreases.
  * 9) Control / Mobility:
  *      - Bonus for controlling central squares.
  *      - Penalty for pieces being very immobile (<2 moves available).
- * 
- * 
- * TODO:
- * 
- * 
- * 8) King Safety:
- *      - Penalty for not being castled
  * 
  */
 int Board::evaluatePosition() const {
@@ -603,7 +609,6 @@ int Board::evaluatePosition() const {
     }
 
     int whiteKing = getLSB(pieceBitboards[WHITE_KING]);
-    eval += pieceValue[WHITE_KING][whiteKing];
     uint64 kingAttacks = attack::getKingAttacks(pieceBitboards[WHITE_KING]);
     control |= kingAttacks;
     centerControlScore += countBits(kingAttacks & CENTER);
@@ -618,6 +623,12 @@ int Board::evaluatePosition() const {
     double materialFactor = materialCount
         / static_cast<double>(startingMaterial - pawnMaterial);
     assert(materialFactor >= 0.0);
+    
+    if (materialFactor < 0.25) {
+        eval += eg_kingValue[whiteKing];
+    } else {
+        eval += pieceValue[WHITE_KING][whiteKing];
+    }
 
     eval -= whiteKingCoveragePenalty(whiteKing, friendlyPawns, materialFactor);
     if ((whiteKing & 0x7) > 0) {
@@ -794,7 +805,6 @@ int Board::evaluatePosition() const {
     }
     
     int blackKing = getLSB(pieceBitboards[BLACK_KING]);
-    eval -= pieceValue[BLACK_KING][blackKing];
     kingAttacks = attack::getKingAttacks(pieceBitboards[BLACK_KING]);
     control |= kingAttacks;
     centerControlScore += countBits(kingAttacks & CENTER);
@@ -807,6 +817,12 @@ int Board::evaluatePosition() const {
     materialCount = material[WHITE] - pawnMaterial
         + pieceMaterial[WHITE_QUEEN] * countBits(pieceBitboards[WHITE_QUEEN]);
     materialFactor = materialCount / double(startingMaterial - pawnMaterial);
+
+    if (materialFactor < 0.25) {
+        eval -= eg_kingValue[blackKing];
+    } else {
+        eval -= pieceValue[BLACK_KING][blackKing];
+    }
 
     eval += blackKingCoveragePenalty(blackKing, friendlyPawns, materialFactor);
     if ((whiteKing & 0x7) > 0) {
