@@ -169,9 +169,58 @@ static inline constexpr char pieceValue[NUM_PIECE_TYPES][64] = {
 };
 
 
-static inline constexpr uint64 LIGHT_SQUARES = 0x55AA55AA55AA55AA;
-static inline constexpr uint64 DARK_SQUARES = 0xAA55AA55AA55AA55;
-static inline constexpr uint64 CENTER = 0x00003C3C3C3C0000;
+/*
+ * 
+ * Bitboards representing diagonals that pass through each square.
+ * 
+ * Ex: diagonalRight[A5] =           Ex: diagonalLeft[D4] = 
+ *    0 0 0 1 0 0 0 0                   0 0 0 0 0 0 0 0
+ *    0 0 1 0 0 0 0 0                   1 0 0 0 0 0 0 0
+ *    0 1 0 0 0 0 0 0                   0 1 0 0 0 0 0 0
+ *    1 0 0 0 0 0 0 0                   0 0 1 0 0 0 0 0
+ *    0 0 0 0 0 0 0 0                   0 0 0 1 0 0 0 0
+ *    0 0 0 0 0 0 0 0                   0 0 0 0 1 0 0 0
+ *    0 0 0 0 0 0 0 0                   0 0 0 0 0 1 0 0
+ *    0 0 0 0 0 0 0 0                   0 0 0 0 0 0 1 0
+ * 
+ */
+static inline constexpr uint64 diagonalLeft[64] = {
+    0x0000000000000001, 0x0000000000000102, 0x0000000000010204, 0x0000000001020408,
+    0x0000000102040810, 0x0000010204081020, 0x0001020408102040, 0x0102040810204080,
+    0x0000000000000102, 0x0000000000010204, 0x0000000001020408, 0x0000000102040810,
+    0x0000010204081020, 0x0001020408102040, 0x0102040810204080, 0x0204081020408000,
+    0x0000000000010204, 0x0000000001020408, 0x0000000102040810, 0x0000010204081020,
+    0x0001020408102040, 0x0102040810204080, 0x0204081020408000, 0x0408102040800000,
+    0x0000000001020408, 0x0000000102040810, 0x0000010204081020, 0x0001020408102040,
+    0x0102040810204080, 0x0204081020408000, 0x0408102040800000, 0x0810204080000000,
+    0x0000000102040810, 0x0000010204081020, 0x0001020408102040, 0x0102040810204080,
+    0x0204081020408000, 0x0408102040800000, 0x0810204080000000, 0x1020408000000000,
+    0x0000010204081020, 0x0001020408102040, 0x0102040810204080, 0x0204081020408000,
+    0x0408102040800000, 0x0810204080000000, 0x1020408000000000, 0x2040800000000000,
+    0x0001020408102040, 0x0102040810204080, 0x0204081020408000, 0x0408102040800000,
+    0x0810204080000000, 0x1020408000000000, 0x2040800000000000, 0x4080000000000000,
+    0x0102040810204080, 0x0204081020408000, 0x0408102040800000, 0x0810204080000000,
+    0x1020408000000000, 0x2040800000000000, 0x4080000000000000, 0x8000000000000000,
+ };
+
+static inline constexpr uint64 diagonalRight[64] = {
+    0x8040201008040201, 0x0080402010080402, 0x0000804020100804, 0x0000008040201008,
+    0x0000000080402010, 0x0000000000804020, 0x0000000000008040, 0x0000000000000080,
+    0x4020100804020100, 0x8040201008040201, 0x0080402010080402, 0x0000804020100804,
+    0x0000008040201008, 0x0000000080402010, 0x0000000000804020, 0x0000000000008040,
+    0x2010080402010000, 0x4020100804020100, 0x8040201008040201, 0x0080402010080402,
+    0x0000804020100804, 0x0000008040201008, 0x0000000080402010, 0x0000000000804020,
+    0x1008040201000000, 0x2010080402010000, 0x4020100804020100, 0x8040201008040201,
+    0x0080402010080402, 0x0000804020100804, 0x0000008040201008, 0x0000000080402010,
+    0x0804020100000000, 0x1008040201000000, 0x2010080402010000, 0x4020100804020100,
+    0x8040201008040201, 0x0080402010080402, 0x0000804020100804, 0x0000008040201008,
+    0x0402010000000000, 0x0804020100000000, 0x1008040201000000, 0x2010080402010000,
+    0x4020100804020100, 0x8040201008040201, 0x0080402010080402, 0x0000804020100804,
+    0x0201000000000000, 0x0402010000000000, 0x0804020100000000, 0x1008040201000000,
+    0x2010080402010000, 0x4020100804020100, 0x8040201008040201, 0x0080402010080402,
+    0x0100000000000000, 0x0201000000000000, 0x0402010000000000, 0x0804020100000000,
+    0x1008040201000000, 0x2010080402010000, 0x4020100804020100, 0x8040201008040201,
+};
 
 
 /*
@@ -209,6 +258,11 @@ static inline constexpr uint64 adjFiles[8] = {
     0x3838383838383838, 0x7070707070707070,
     0xE0E0E0E0E0E0E0E0, 0xC0C0C0C0C0C0C0C0,
 };
+
+
+static inline constexpr uint64 LIGHT_SQUARES = 0x55AA55AA55AA55AA;
+static inline constexpr uint64 DARK_SQUARES = 0xAA55AA55AA55AA55;
+static inline constexpr uint64 CENTER = 0x00003C3C3C3C0000;
 
 
 /*
@@ -369,6 +423,7 @@ int blackKingCoveragePenalty(int blackKing, uint64 friendlyPawns,
  *      - Penalty for enemy pieces attacking squares around the king.
  *      - Penalty for open files around the king
  *      - Penalty for pushing pawns in front of the king
+ *      - Penalty for open diagonals around the king (length of diagonal matters)
  *      - King safety concerns lesson as remaining enemy material decreases.
  * 9) Control / Mobility:
  *      - Bonus for controlling central squares.
@@ -379,8 +434,6 @@ int blackKingCoveragePenalty(int blackKing, uint64 friendlyPawns,
  * 
  * 
  * 8) King Safety:
- *      - Penalty for open diagonals around the king (length of diagonal matters)
- *      - Penalty for enemy pawns too close to the king
  *      - Penalty for not being castled
  * 
  */
@@ -573,6 +626,14 @@ int Board::evaluatePosition() const {
         eval -= whiteKingCoveragePenalty(whiteKing + 1,
                                          friendlyPawns, materialFactor) / 2;
     }
+    uint64 diagLeft = diagonalLeft[whiteKing];
+    uint64 diagRight = diagonalRight[whiteKing];
+    if (!(diagLeft & friendlyPawns)) {
+        eval -= static_cast<int>(3 * countBits(diagLeft) * materialFactor);
+    }
+    if (!(diagRight & friendlyPawns)) {
+        eval -= static_cast<int>(3 * countBits(diagRight) * materialFactor);
+    }
     // ------------------------------------------------------------------------
     // ---------------------------- BLACK -------------------------------------
     // ------------------------------------------------------------------------
@@ -750,6 +811,14 @@ int Board::evaluatePosition() const {
     if ((whiteKing & 0x7) < 7) {
         eval += blackKingCoveragePenalty(blackKing + 1,
                                          friendlyPawns, materialFactor) / 2;
+    }
+    diagLeft = diagonalLeft[blackKing];
+    diagRight = diagonalRight[blackKing];
+    if (!(diagLeft & friendlyPawns)) {
+        eval += static_cast<int>(3 * countBits(diagLeft) * materialFactor);
+    }
+    if (!(diagRight & friendlyPawns)) {
+        eval += static_cast<int>(3 * countBits(diagRight) * materialFactor);
     }
     return sideToMove == WHITE ? eval : -eval;
 }
