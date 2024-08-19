@@ -446,9 +446,11 @@ int Board::evaluatePosition() const {
     uint64 bpal = attack::getBlackPawnAttacksLeft(pieceBitboards[BLACK_PAWN]);
     uint64 bpar = attack::getBlackPawnAttacksRight(pieceBitboards[BLACK_PAWN]);
     int eval = material[WHITE] - material[BLACK];
+
     // ------------------------------------------------------------------------
     // ---------------------------- WHITE -------------------------------------
     // ------------------------------------------------------------------------
+
     uint64 friendlyPawns = pieceBitboards[WHITE_PAWN];
     uint64 enemyPawns = pieceBitboards[BLACK_PAWN];
     uint64 friendlyPieces = colorBitboards[WHITE];
@@ -635,9 +637,11 @@ int Board::evaluatePosition() const {
         eval -= static_cast<int>(3 * countBits(diagRight) * materialFactor);
     }
     eval -= static_cast<int>(50 * !hasCastled[WHITE] * materialFactor);
+
     // ------------------------------------------------------------------------
     // ---------------------------- BLACK -------------------------------------
     // ------------------------------------------------------------------------
+
     friendlyPawns = pieceBitboards[BLACK_PAWN];
     enemyPawns = pieceBitboards[WHITE_PAWN];
     friendlyPieces = colorBitboards[BLACK];
@@ -695,7 +699,7 @@ int Board::evaluatePosition() const {
         eval -= blockedPawns * 3;
         attacks &= ~friendlyPieces;
         attacks &= ~(wpal | wpar);
-        eval -= mobilityPenalty[countBits(attacks)];
+        eval += mobilityPenalty[countBits(attacks)];
         blackKnights &= blackKnights - 1;
     }
     // ------------------------------------------------------------------------
@@ -729,7 +733,7 @@ int Board::evaluatePosition() const {
         }
         attacks &= ~friendlyPieces;
         attacks &= ~(wpal | wpar);
-        eval -= mobilityPenalty[countBits(attacks)];
+        eval += mobilityPenalty[countBits(attacks)];
         blackBishops &= blackBishops - 1;
     }
     if (hasLightBishop && hasDarkBishop) {
@@ -759,7 +763,7 @@ int Board::evaluatePosition() const {
         }
         attacks &= ~friendlyPieces;
         attacks &= ~(wpal | wpar);
-        eval -= mobilityPenalty[countBits(attacks)];
+        eval += mobilityPenalty[countBits(attacks)];
         blackRooks &= blackRooks - 1;
     }
     // ------------------------------------------------------------------------
@@ -785,7 +789,7 @@ int Board::evaluatePosition() const {
         eval -= 2 * (10 - distToKing);
         attacks &= ~friendlyPieces;
         attacks &= ~(wpal | wpar);
-        eval -= mobilityPenalty[countBits(attacks)];
+        eval += mobilityPenalty[countBits(attacks)];
         blackQueens &= blackQueens - 1;
     }
     
@@ -796,7 +800,7 @@ int Board::evaluatePosition() const {
     centerControlScore += countBits(kingAttacks & CENTER);
     eval -= centerControlScore * 2;
     aroundKing = attack::getKingAttacks(pieceBitboards[WHITE_KING]);
-    eval += countBits(aroundKing & control) * 7;
+    eval -= countBits(aroundKing & control) * 7;
 
     pawnMaterial = pieceMaterial[WHITE_PAWN]
         * countBits(pieceBitboards[WHITE_PAWN]);
