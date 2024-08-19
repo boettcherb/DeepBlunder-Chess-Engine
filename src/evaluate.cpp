@@ -21,6 +21,20 @@ static inline constexpr uint64 BB(int square) {
 
 /*
  *
+ * Perform a shift by the specified amount. If shift is outisde the range
+ * [0, 63], then return 0 to avoid undefined behavior.
+ *
+ */
+static inline constexpr uint64 RSHIFT(uint64 bb, int shift) {
+    if (shift < 0 || shift >= 64) {
+        return 0;
+    }
+    return bb >> shift;
+}
+
+
+/*
+ *
  * pieceValue[piece][sq] gives an estimate as to how valuable a piece will be
  * when placed on the square sq. This is used for the evaluatePosition()
  * function to favor moves that are likely to be improving moves. For example,
@@ -199,12 +213,24 @@ static inline constexpr uint64 adjFiles[8] = {
 
 /*
  * 
- * Penalty applied for having limited mobility. For example, if a piece has 0
- * possible moves it gets a penalty of 30, and if it has 1 move it gets a
- * penalty of 20.
+ * Evalulation penalty based on how far a pawn is in front of a king on a
+ * certain file. This should hopefully prevent the engine from mindlessly
+ * pushing pawns in front of the king.
  * 
  */
-static inline constexpr int mobilityPenalty[32] = { 30, 20, 4, 1, };
+static inline constexpr char pawnDistPenalty[8] = {
+    0, 0, 4, 12, 24, 34, 40,
+};
+
+
+/*
+ * 
+ * Penalty applied for having limited mobility. For example, if a piece has 0
+ * possible moves it gets a penalty of 30, if it has 1 move it gets a
+ * penalty of 20, etc.
+ * 
+ */
+static inline constexpr char mobilityPenalty[32] = { 30, 20, 4, 1, };
 
 
 /*
@@ -215,17 +241,6 @@ static inline constexpr int mobilityPenalty[32] = { 30, 20, 4, 1, };
  * 
  */
 static inline constexpr char distBonus[8] = { 4, 2, 1, 0, 0, 0, 0, 0 };
-
-
-/*
- * 
- * Store the locations (file and rank) of the enemey targets (kings, queens,
- * rooks, as well as a multiplier value. These locations are compared against
- * the locations of friendly pieces. Pieces on the same rank, file, or diagonal
- * as the enemy targets get an evaluation bonus, times the multiplier value.
- *
- */
-static std::tuple<int, int, int> targets[12];
 
 
 /*
@@ -288,6 +303,39 @@ static inline bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
 
 
 /*
+ * 
+ * Calculate a penalty for a king being on an open file or for a side
+ * having pushed pawns in front of the king. This penalty is multiplied by
+ * 'materialFactor' so that the penalty decreases as the number of enemy
+ * pieces decreases.
+ * 
+ */
+int whiteKingCoveragePenalty(int whiteKing, uint64 friendlyPawns,
+                             double materialFactor) {
+    assert(whiteKing >= 0 && whiteKing < 64);
+    uint64 filePawns = (sameFile[whiteKing & 0x7] <<
+                        (whiteKing / 8 * 8)) & friendlyPawns;
+    if (!filePawns) {
+        return static_cast<int>(50 * materialFactor);
+    }
+    int dist = (getLSB(filePawns) - whiteKing) / 8;
+    assert(dist > 0 && dist < 8);
+    return static_cast<int>(pawnDistPenalty[dist] * materialFactor);
+}
+int blackKingCoveragePenalty(int blackKing, uint64 friendlyPawns,
+                             double materialFactor) {
+    assert(blackKing >= 0 && blackKing < 64);
+    uint64 filePawns = RSHIFT(sameFile[blackKing & 0x7],
+                              64 - blackKing / 8 * 8) & friendlyPawns;
+    if (!filePawns) {
+        return static_cast<int>(50 * materialFactor);
+    }
+    int dist = ((blackKing - getMSB(filePawns)) / 8);
+    assert(dist > 0 && dist < 8);
+    return static_cast<int>(pawnDistPenalty[dist] * materialFactor);
+}
+
+/*
  *
  * Return an evaluation of the current position. The evaluation is an integer
  * that is positive if the engine thinks that the current side to move is
@@ -302,8 +350,8 @@ static inline bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  *      - Bonus for passed and protected pawns.
  *      - Penalty for backwards, doubled, isolated, and blocked pawns.
  * 4) Knights:
- *      - Bonus for every friendly blocked pawn (favor closed positions)
  *      - Bonus for proximity to enemy king
+ *      - Bonus for every friendly blocked pawn (favor closed positions)
  * 5) Bishops:
  *      - Bonus for having both bishops (bishop pair).
  *      - Bonus for being on same diagonal as enemy king/queen/rooks.
@@ -319,6 +367,9 @@ static inline bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  *      - Bonus for proximity to enemy king.
  * 8) King Safety:
  *      - Penalty for enemy pieces attacking squares around the king.
+ *      - Penalty for open files around the king
+ *      - Penalty for pushing pawns in front of the king
+ *      - King safety concerns lesson as remaining enemy material decreases.
  * 9) Control / Mobility:
  *      - Bonus for controlling central squares.
  *      - Penalty for pieces being very immobile (<2 moves available).
@@ -327,15 +378,15 @@ static inline bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
  * TODO:
  * 
  * 
- *      - Penalty for too many open files/diagonals around the king
- *        (length of diagonal matters)
- *      - Penalty for not enough pawns in front of the king
- *      - Penalty for enemy pawns too close to king
+ * 8) King Safety:
+ *      - Penalty for open diagonals around the king (length of diagonal matters)
+ *      - Penalty for enemy pawns too close to the king
  *      - Penalty for not being castled
  * 
  */
 int Board::evaluatePosition() const {
     assert(boardIsValid());
+    std::tuple<int, int, int> targets[12];
     const uint64 allPieces = colorBitboards[BOTH_COLORS];
     uint64 wpal = attack::getWhitePawnAttacksLeft(pieceBitboards[WHITE_PAWN]);
     uint64 wpar = attack::getWhitePawnAttacksRight(pieceBitboards[WHITE_PAWN]);
@@ -495,15 +546,33 @@ int Board::evaluatePosition() const {
         eval -= mobilityPenalty[countBits(attacks)];
         whiteQueens &= whiteQueens - 1;
     }
-    uint64 whiteKingBB = pieceBitboards[WHITE_KING];
+
     int whiteKing = getLSB(pieceBitboards[WHITE_KING]);
     eval += pieceValue[WHITE_KING][whiteKing];
-    uint64 kingAttacks = attack::getKingAttacks(whiteKingBB);
+    uint64 kingAttacks = attack::getKingAttacks(pieceBitboards[WHITE_KING]);
     control |= kingAttacks;
     centerControlScore += countBits(kingAttacks & CENTER);
     eval += centerControlScore * 2;
-    uint64 aroundEnemyKing = attack::getKingAttacks(pieceBitboards[BLACK_KING]);
-    eval += countBits(aroundEnemyKing & control) * 7;
+    uint64 aroundKing = attack::getKingAttacks(pieceBitboards[BLACK_KING]);
+    eval += countBits(aroundKing & control) * 7;
+
+    int pawnMaterial = pieceMaterial[BLACK_PAWN]
+        * countBits(pieceBitboards[BLACK_PAWN]);
+    int materialCount = material[BLACK] - pawnMaterial
+        + pieceMaterial[BLACK_QUEEN] * countBits(pieceBitboards[BLACK_QUEEN]);
+    double materialFactor = materialCount
+        / static_cast<double>(startingMaterial - pawnMaterial);
+    assert(materialFactor >= 0.0);
+
+    eval -= whiteKingCoveragePenalty(whiteKing, friendlyPawns, materialFactor);
+    if ((whiteKing & 0x7) > 0) {
+        eval -= whiteKingCoveragePenalty(whiteKing - 1,
+                                         friendlyPawns, materialFactor) / 2;
+    }
+    if ((whiteKing & 0x7) < 7) {
+        eval -= whiteKingCoveragePenalty(whiteKing + 1,
+                                         friendlyPawns, materialFactor) / 2;
+    }
     // ------------------------------------------------------------------------
     // ---------------------------- BLACK -------------------------------------
     // ------------------------------------------------------------------------
@@ -657,14 +726,30 @@ int Board::evaluatePosition() const {
         eval -= mobilityPenalty[countBits(attacks)];
         blackQueens &= blackQueens - 1;
     }
-    uint64 blackKingBB = pieceBitboards[WHITE_KING];
-    int blackKing = getLSB(pieceBitboards[WHITE_KING]);
+    
+    int blackKing = getLSB(pieceBitboards[BLACK_KING]);
     eval -= pieceValue[BLACK_KING][blackKing];
-    kingAttacks = attack::getKingAttacks(blackKingBB);
+    kingAttacks = attack::getKingAttacks(pieceBitboards[BLACK_KING]);
     control |= kingAttacks;
     centerControlScore += countBits(kingAttacks & CENTER);
     eval -= centerControlScore * 2;
-    aroundEnemyKing = attack::getKingAttacks(pieceBitboards[WHITE_KING]);
-    eval += countBits(aroundEnemyKing & control) * 7;
+    aroundKing = attack::getKingAttacks(pieceBitboards[WHITE_KING]);
+    eval += countBits(aroundKing & control) * 7;
+
+    pawnMaterial = pieceMaterial[WHITE_PAWN]
+        * countBits(pieceBitboards[WHITE_PAWN]);
+    materialCount = material[WHITE] - pawnMaterial
+        + pieceMaterial[WHITE_QUEEN] * countBits(pieceBitboards[WHITE_QUEEN]);
+    materialFactor = materialCount / double(startingMaterial - pawnMaterial);
+
+    eval += blackKingCoveragePenalty(blackKing, friendlyPawns, materialFactor);
+    if ((whiteKing & 0x7) > 0) {
+        eval += blackKingCoveragePenalty(blackKing - 1,
+                                         friendlyPawns, materialFactor) / 2;
+    }
+    if ((whiteKing & 0x7) < 7) {
+        eval += blackKingCoveragePenalty(blackKing + 1,
+                                         friendlyPawns, materialFactor) / 2;
+    }
     return sideToMove == WHITE ? eval : -eval;
 }
