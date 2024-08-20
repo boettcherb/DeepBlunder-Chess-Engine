@@ -96,21 +96,22 @@ void Engine::setMoveOverhead(int overhead) {
 
 /*
  * 
- * Set the path to the log file. If the file path is the value "<empty>", then
- * disable logging. This function is called whenever we receive a "setoption
- * name Log File ..." command from the GUI.
+ * Set the path to the log file. If the file path is empty, then disable
+ * logging. This function is called whenever we receive a "setoption name Log
+ * File ..." command from the GUI.
  * 
  */
 void Engine::setLogFile(const std::string& path) {
-    assert(!path.empty());
     if (path == logFile) {
         return;
     }
+    if (path.empty()) {
+        log("Disabling logging...");
+    }
     logFile = path;
-    log("Setting log file path to " + logFile);
     logger_mutex.lock();
     logger.close();
-    if (path != "<empty>") {
+    if (!logFile.empty()) {
         logger.open(logFile, std::ios::out | std::ios::app);
     }
     logger_mutex.unlock();

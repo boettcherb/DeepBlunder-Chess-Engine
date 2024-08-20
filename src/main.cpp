@@ -32,7 +32,10 @@ static void uci_process_setoption(Engine& engine, std::stringstream& ss) {
         engine.setMoveOverhead(std::stoi(value));
     }
     if (name == "Log File") {
-        assert(!value.empty());
+        if (value == "<empty>" || value == "\"<empty>\""
+            || value == "\"\"" || value.empty()) {
+            value.clear();
+        }
         engine.setLogFile(value);
     }
 }
