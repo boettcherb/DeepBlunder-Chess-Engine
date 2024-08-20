@@ -121,6 +121,7 @@ void Board::reset() {
     material[0] = material[1] = startingMaterial;
     positionKey = generatePositionKey();
     history.clear();
+    hasCastled[WHITE] = hasCastled[BLACK] = false;
 }
 
 
