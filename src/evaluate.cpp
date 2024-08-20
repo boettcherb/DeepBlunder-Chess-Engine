@@ -183,55 +183,82 @@ static inline constexpr char eg_kingValue[64] = {
 
 /*
  * 
- * Bitboards representing diagonals that pass through each square.
- * 
- * Ex: diagonalRight[A5] =           Ex: diagonalLeft[D4] = 
- *    0 0 0 1 0 0 0 0                   0 0 0 0 0 0 0 0
- *    0 0 1 0 0 0 0 0                   1 0 0 0 0 0 0 0
- *    0 1 0 0 0 0 0 0                   0 1 0 0 0 0 0 0
- *    1 0 0 0 0 0 0 0                   0 0 1 0 0 0 0 0
- *    0 0 0 0 0 0 0 0                   0 0 0 1 0 0 0 0
- *    0 0 0 0 0 0 0 0                   0 0 0 0 1 0 0 0
- *    0 0 0 0 0 0 0 0                   0 0 0 0 0 1 0 0
- *    0 0 0 0 0 0 0 0                   0 0 0 0 0 0 1 0
+ * Bitboards representing rays going outward from a given square in the
+ * directions Northeast, Southeast, Northwest, and Southwest. These are the
+ * same as in attack.cpp.
  * 
  */
-static inline constexpr uint64 diagonalLeft[64] = {
-    0x0000000000000001, 0x0000000000000102, 0x0000000000010204, 0x0000000001020408,
-    0x0000000102040810, 0x0000010204081020, 0x0001020408102040, 0x0102040810204080,
-    0x0000000000000102, 0x0000000000010204, 0x0000000001020408, 0x0000000102040810,
-    0x0000010204081020, 0x0001020408102040, 0x0102040810204080, 0x0204081020408000,
-    0x0000000000010204, 0x0000000001020408, 0x0000000102040810, 0x0000010204081020,
-    0x0001020408102040, 0x0102040810204080, 0x0204081020408000, 0x0408102040800000,
-    0x0000000001020408, 0x0000000102040810, 0x0000010204081020, 0x0001020408102040,
-    0x0102040810204080, 0x0204081020408000, 0x0408102040800000, 0x0810204080000000,
-    0x0000000102040810, 0x0000010204081020, 0x0001020408102040, 0x0102040810204080,
-    0x0204081020408000, 0x0408102040800000, 0x0810204080000000, 0x1020408000000000,
-    0x0000010204081020, 0x0001020408102040, 0x0102040810204080, 0x0204081020408000,
-    0x0408102040800000, 0x0810204080000000, 0x1020408000000000, 0x2040800000000000,
-    0x0001020408102040, 0x0102040810204080, 0x0204081020408000, 0x0408102040800000,
-    0x0810204080000000, 0x1020408000000000, 0x2040800000000000, 0x4080000000000000,
-    0x0102040810204080, 0x0204081020408000, 0x0408102040800000, 0x0810204080000000,
-    0x1020408000000000, 0x2040800000000000, 0x4080000000000000, 0x8000000000000000,
- };
-
-static inline constexpr uint64 diagonalRight[64] = {
-    0x8040201008040201, 0x0080402010080402, 0x0000804020100804, 0x0000008040201008,
-    0x0000000080402010, 0x0000000000804020, 0x0000000000008040, 0x0000000000000080,
-    0x4020100804020100, 0x8040201008040201, 0x0080402010080402, 0x0000804020100804,
-    0x0000008040201008, 0x0000000080402010, 0x0000000000804020, 0x0000000000008040,
-    0x2010080402010000, 0x4020100804020100, 0x8040201008040201, 0x0080402010080402,
-    0x0000804020100804, 0x0000008040201008, 0x0000000080402010, 0x0000000000804020,
-    0x1008040201000000, 0x2010080402010000, 0x4020100804020100, 0x8040201008040201,
-    0x0080402010080402, 0x0000804020100804, 0x0000008040201008, 0x0000000080402010,
-    0x0804020100000000, 0x1008040201000000, 0x2010080402010000, 0x4020100804020100,
-    0x8040201008040201, 0x0080402010080402, 0x0000804020100804, 0x0000008040201008,
-    0x0402010000000000, 0x0804020100000000, 0x1008040201000000, 0x2010080402010000,
-    0x4020100804020100, 0x8040201008040201, 0x0080402010080402, 0x0000804020100804,
-    0x0201000000000000, 0x0402010000000000, 0x0804020100000000, 0x1008040201000000,
-    0x2010080402010000, 0x4020100804020100, 0x8040201008040201, 0x0080402010080402,
-    0x0100000000000000, 0x0201000000000000, 0x0402010000000000, 0x0804020100000000,
-    0x1008040201000000, 0x2010080402010000, 0x4020100804020100, 0x8040201008040201,
+static inline constexpr uint64 rayNorthWest[64] = {
+    0x0000000000000000, 0x0000000000000100, 0x0000000000010200, 0x0000000001020400,
+    0x0000000102040800, 0x0000010204081000, 0x0001020408102000, 0x0102040810204000,
+    0x0000000000000000, 0x0000000000010000, 0x0000000001020000, 0x0000000102040000,
+    0x0000010204080000, 0x0001020408100000, 0x0102040810200000, 0x0204081020400000,
+    0x0000000000000000, 0x0000000001000000, 0x0000000102000000, 0x0000010204000000,
+    0x0001020408000000, 0x0102040810000000, 0x0204081020000000, 0x0408102040000000,
+    0x0000000000000000, 0x0000000100000000, 0x0000010200000000, 0x0001020400000000,
+    0x0102040800000000, 0x0204081000000000, 0x0408102000000000, 0x0810204000000000,
+    0x0000000000000000, 0x0000010000000000, 0x0001020000000000, 0x0102040000000000,
+    0x0204080000000000, 0x0408100000000000, 0x0810200000000000, 0x1020400000000000,
+    0x0000000000000000, 0x0001000000000000, 0x0102000000000000, 0x0204000000000000,
+    0x0408000000000000, 0x0810000000000000, 0x1020000000000000, 0x2040000000000000,
+    0x0000000000000000, 0x0100000000000000, 0x0200000000000000, 0x0400000000000000,
+    0x0800000000000000, 0x1000000000000000, 0x2000000000000000, 0x4000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+};
+static inline constexpr uint64 rayNorthEast[64] = {
+    0x8040201008040200, 0x0080402010080400, 0x0000804020100800, 0x0000008040201000,
+    0x0000000080402000, 0x0000000000804000, 0x0000000000008000, 0x0000000000000000,
+    0x4020100804020000, 0x8040201008040000, 0x0080402010080000, 0x0000804020100000,
+    0x0000008040200000, 0x0000000080400000, 0x0000000000800000, 0x0000000000000000,
+    0x2010080402000000, 0x4020100804000000, 0x8040201008000000, 0x0080402010000000,
+    0x0000804020000000, 0x0000008040000000, 0x0000000080000000, 0x0000000000000000,
+    0x1008040200000000, 0x2010080400000000, 0x4020100800000000, 0x8040201000000000,
+    0x0080402000000000, 0x0000804000000000, 0x0000008000000000, 0x0000000000000000,
+    0x0804020000000000, 0x1008040000000000, 0x2010080000000000, 0x4020100000000000,
+    0x8040200000000000, 0x0080400000000000, 0x0000800000000000, 0x0000000000000000,
+    0x0402000000000000, 0x0804000000000000, 0x1008000000000000, 0x2010000000000000,
+    0x4020000000000000, 0x8040000000000000, 0x0080000000000000, 0x0000000000000000,
+    0x0200000000000000, 0x0400000000000000, 0x0800000000000000, 0x1000000000000000,
+    0x2000000000000000, 0x4000000000000000, 0x8000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+};
+static inline constexpr uint64 raySouthWest[64] = {
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000001, 0x0000000000000002, 0x0000000000000004,
+    0x0000000000000008, 0x0000000000000010, 0x0000000000000020, 0x0000000000000040,
+    0x0000000000000000, 0x0000000000000100, 0x0000000000000201, 0x0000000000000402,
+    0x0000000000000804, 0x0000000000001008, 0x0000000000002010, 0x0000000000004020,
+    0x0000000000000000, 0x0000000000010000, 0x0000000000020100, 0x0000000000040201,
+    0x0000000000080402, 0x0000000000100804, 0x0000000000201008, 0x0000000000402010,
+    0x0000000000000000, 0x0000000001000000, 0x0000000002010000, 0x0000000004020100,
+    0x0000000008040201, 0x0000000010080402, 0x0000000020100804, 0x0000000040201008,
+    0x0000000000000000, 0x0000000100000000, 0x0000000201000000, 0x0000000402010000,
+    0x0000000804020100, 0x0000001008040201, 0x0000002010080402, 0x0000004020100804,
+    0x0000000000000000, 0x0000010000000000, 0x0000020100000000, 0x0000040201000000,
+    0x0000080402010000, 0x0000100804020100, 0x0000201008040201, 0x0000402010080402,
+    0x0000000000000000, 0x0001000000000000, 0x0002010000000000, 0x0004020100000000,
+    0x0008040201000000, 0x0010080402010000, 0x0020100804020100, 0x0040201008040201,
+};
+static inline constexpr uint64 raySouthEast[64] = {
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000000, 0x0000000000000000, 0x0000000000000000, 0x0000000000000000,
+    0x0000000000000002, 0x0000000000000004, 0x0000000000000008, 0x0000000000000010,
+    0x0000000000000020, 0x0000000000000040, 0x0000000000000080, 0x0000000000000000,
+    0x0000000000000204, 0x0000000000000408, 0x0000000000000810, 0x0000000000001020,
+    0x0000000000002040, 0x0000000000004080, 0x0000000000008000, 0x0000000000000000,
+    0x0000000000020408, 0x0000000000040810, 0x0000000000081020, 0x0000000000102040,
+    0x0000000000204080, 0x0000000000408000, 0x0000000000800000, 0x0000000000000000,
+    0x0000000002040810, 0x0000000004081020, 0x0000000008102040, 0x0000000010204080,
+    0x0000000020408000, 0x0000000040800000, 0x0000000080000000, 0x0000000000000000,
+    0x0000000204081020, 0x0000000408102040, 0x0000000810204080, 0x0000001020408000,
+    0x0000002040800000, 0x0000004080000000, 0x0000008000000000, 0x0000000000000000,
+    0x0000020408102040, 0x0000040810204080, 0x0000081020408000, 0x0000102040800000,
+    0x0000204080000000, 0x0000408000000000, 0x0000800000000000, 0x0000000000000000,
+    0x0002040810204080, 0x0004081020408000, 0x0008102040800000, 0x0010204080000000,
+    0x0020408000000000, 0x0040800000000000, 0x0080000000000000, 0x0000000000000000,
 };
 
 
@@ -279,13 +306,13 @@ static inline constexpr uint64 CENTER = 0x00003C3C3C3C0000;
 
 /*
  * 
- * Evalulation penalty based on how far a pawn is in front of a king on a
- * certain file. This should hopefully prevent the engine from mindlessly
+ * Evalulation penalty based on how far a pawn is from a king on a certain file
+ * or diagonal. This should hopefully prevent the engine from mindlessly
  * pushing pawns in front of the king.
  * 
  */
 static inline constexpr char pawnDistPenalty[8] = {
-    0, 0, 4, 12, 24, 34, 40,
+    0, 0, 8, 12, 24, 34, 40,
 };
 
 
@@ -369,39 +396,6 @@ static inline bool blackPawnIsBackwards(int square, uint64 friendlyPawns,
 
 
 /*
- * 
- * Calculate a penalty for a king being on an open file or for a side
- * having pushed pawns in front of the king. This penalty is multiplied by
- * 'materialFactor' so that the penalty decreases as the number of enemy
- * pieces decreases.
- * 
- */
-int whiteKingCoveragePenalty(int whiteKing, uint64 friendlyPawns,
-                             double materialFactor) {
-    assert(whiteKing >= 0 && whiteKing < 64);
-    uint64 filePawns = (sameFile[whiteKing & 0x7] <<
-                        (whiteKing / 8 * 8)) & friendlyPawns;
-    if (!filePawns) {
-        return static_cast<int>(50 * materialFactor);
-    }
-    int dist = (getLSB(filePawns) - whiteKing) / 8;
-    assert(dist > 0 && dist < 8);
-    return static_cast<int>(pawnDistPenalty[dist] * materialFactor);
-}
-int blackKingCoveragePenalty(int blackKing, uint64 friendlyPawns,
-                             double materialFactor) {
-    assert(blackKing >= 0 && blackKing < 64);
-    uint64 filePawns = RSHIFT(sameFile[blackKing & 0x7],
-                              64 - blackKing / 8 * 8) & friendlyPawns;
-    if (!filePawns) {
-        return static_cast<int>(50 * materialFactor);
-    }
-    int dist = ((blackKing - getMSB(filePawns)) / 8);
-    assert(dist > 0 && dist < 8);
-    return static_cast<int>(pawnDistPenalty[dist] * materialFactor);
-}
-
-/*
  *
  * Return an evaluation of the current position. The evaluation is an integer
  * that is positive if the engine thinks that the current side to move is
@@ -433,10 +427,10 @@ int blackKingCoveragePenalty(int blackKing, uint64 friendlyPawns,
  *      - Bonus for proximity to enemy king.
  * 8) King Safety:
  *      - Penalty for enemy pieces attacking squares around the king.
- *      - Penalty for open files around the king
- *      - Penalty for pushing pawns in front of the king
- *      - Penalty for open diagonals around the king (length of diagonal matters)
- *      - Penalty for not being castled
+ *      - Penalty for king being on an open file.
+ *      - Penalty for pushing pawns in front of the king.
+ *      - Penalty for open diagonals around the king (length of diagonal matters).
+ *      - Penalty for not being castled.
  *      - King safety concerns lesson as remaining enemy material decreases.
  * 9) Control / Mobility:
  *      - Bonus for controlling central squares.
@@ -623,6 +617,7 @@ int Board::evaluatePosition() const {
     double materialFactor = materialCount
         / static_cast<double>(startingMaterial - pawnMaterial);
     assert(materialFactor >= 0.0);
+
     
     if (materialFactor < 0.25) {
         eval += eg_kingValue[whiteKing];
@@ -630,23 +625,33 @@ int Board::evaluatePosition() const {
         eval += pieceValue[WHITE_KING][whiteKing];
     }
 
-    eval -= whiteKingCoveragePenalty(whiteKing, friendlyPawns, materialFactor);
-    if ((whiteKing & 0x7) > 0) {
-        eval -= whiteKingCoveragePenalty(whiteKing - 1,
-                                         friendlyPawns, materialFactor) / 2;
+    uint64 filePawns = (sameFile[whiteKing & 0x7] <<
+                        (whiteKing / 8 * 8)) & friendlyPawns;
+    if (!filePawns) {
+        eval -= static_cast<int>(50 * materialFactor);
+    } else {
+        int dist = (getLSB(filePawns) - whiteKing) / 8;
+        assert(dist > 0 && dist < 8);
+        eval -= static_cast<int>(pawnDistPenalty[dist] * materialFactor);
     }
-    if ((whiteKing & 0x7) < 7) {
-        eval -= whiteKingCoveragePenalty(whiteKing + 1,
-                                         friendlyPawns, materialFactor) / 2;
+
+    uint64 rayNW = rayNorthWest[whiteKing], rayNE = rayNorthEast[whiteKing];
+    uint64 pawnsNW = rayNW & friendlyPawns, pawnsNE = rayNE & friendlyPawns;
+    if (!pawnsNW) {
+        eval -= static_cast<int>(5 * countBits(rayNW) * materialFactor);
+    } else {
+        int dist = (getLSB(pawnsNW) - whiteKing) / 7;
+        assert(dist > 0 && dist < 8);
+        eval -= static_cast<int>(pawnDistPenalty[dist] * materialFactor);
     }
-    uint64 diagLeft = diagonalLeft[whiteKing];
-    uint64 diagRight = diagonalRight[whiteKing];
-    if (!(diagLeft & friendlyPawns)) {
-        eval -= static_cast<int>(3 * countBits(diagLeft) * materialFactor);
+    if (!pawnsNE) {
+        eval -= static_cast<int>(5 * countBits(rayNE) * materialFactor);
+    } else {
+        int dist = (getLSB(pawnsNE) - whiteKing) / 9;
+        assert(dist > 0 && dist < 8);
+        eval -= static_cast<int>(pawnDistPenalty[dist] * materialFactor);
     }
-    if (!(diagRight & friendlyPawns)) {
-        eval -= static_cast<int>(3 * countBits(diagRight) * materialFactor);
-    }
+
     eval -= static_cast<int>(50 * !hasCastled[WHITE] * materialFactor);
 
     // ------------------------------------------------------------------------
@@ -817,6 +822,7 @@ int Board::evaluatePosition() const {
     materialCount = material[WHITE] - pawnMaterial
         + pieceMaterial[WHITE_QUEEN] * countBits(pieceBitboards[WHITE_QUEEN]);
     materialFactor = materialCount / double(startingMaterial - pawnMaterial);
+    assert(materialFactor >= 0.0);
 
     if (materialFactor < 0.25) {
         eval -= eg_kingValue[blackKing];
@@ -824,23 +830,34 @@ int Board::evaluatePosition() const {
         eval -= pieceValue[BLACK_KING][blackKing];
     }
 
-    eval += blackKingCoveragePenalty(blackKing, friendlyPawns, materialFactor);
-    if ((whiteKing & 0x7) > 0) {
-        eval += blackKingCoveragePenalty(blackKing - 1,
-                                         friendlyPawns, materialFactor) / 2;
+    filePawns = RSHIFT(sameFile[blackKing & 0x7],
+                       64 - blackKing / 8 * 8) & friendlyPawns;
+    if (!filePawns) {
+        eval += static_cast<int>(50 * materialFactor);
+    } else {
+        int dist = ((blackKing - getMSB(filePawns)) / 8);
+        assert(dist > 0 && dist < 8);
+        eval += static_cast<int>(pawnDistPenalty[dist] * materialFactor);
     }
-    if ((whiteKing & 0x7) < 7) {
-        eval += blackKingCoveragePenalty(blackKing + 1,
-                                         friendlyPawns, materialFactor) / 2;
+
+    uint64 raySW = raySouthWest[blackKing], raySE = raySouthEast[blackKing];
+    uint64 pawnsSW = raySW & friendlyPawns, pawnsSE = raySE & friendlyPawns;
+    if (!pawnsSW) {
+        eval += static_cast<int>(5 * countBits(raySW) * materialFactor);
+    } else {
+        int dist = (blackKing - getMSB(pawnsSW)) / 9;
+        assert(dist > 0 && dist < 8);
+        eval += static_cast<int>(pawnDistPenalty[dist] * materialFactor);
     }
-    diagLeft = diagonalLeft[blackKing];
-    diagRight = diagonalRight[blackKing];
-    if (!(diagLeft & friendlyPawns)) {
-        eval += static_cast<int>(3 * countBits(diagLeft) * materialFactor);
+    if (!pawnsSE) {
+        eval += static_cast<int>(5 * countBits(raySE) * materialFactor);
+    } else {
+        int dist = (blackKing - getMSB(pawnsSE)) / 7;
+        assert(dist > 0 && dist < 8);
+        eval += static_cast<int>(pawnDistPenalty[dist] * materialFactor);
     }
-    if (!(diagRight & friendlyPawns)) {
-        eval += static_cast<int>(3 * countBits(diagRight) * materialFactor);
-    }
+
     eval += static_cast<int>(50 * !hasCastled[BLACK] * materialFactor);
+
     return sideToMove == WHITE ? eval : -eval;
 }
