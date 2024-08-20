@@ -72,7 +72,7 @@ bool Board::boardIsValid() const {
     int pieceCount[NUM_PIECE_TYPES] = { 0 };
     int materialWhite = 0, materialBlack = 0;
     for (int sq = 0; sq < 64; ++sq) {
-        int piece = INVALID, count = 0;
+        int piece = NO_PIECE, count = 0;
         for (int type = 0; type < NUM_PIECE_TYPES; ++type) {
             if (pieceBitboards[type] & (1ULL << sq)) {
                 ++count;
@@ -88,7 +88,7 @@ bool Board::boardIsValid() const {
             std::cerr << "Invalid pieces[] array" << std::endl;
             return false;
         }
-        if (piece != INVALID) {
+        if (piece != NO_PIECE) {
             ++pieceCount[piece];
             if (pieceColor[piece] == WHITE) {
                 materialWhite += pieceMaterial[piece];
@@ -140,7 +140,7 @@ bool Board::boardIsValid() const {
             std::cerr << "Invalid en passant square (1)" << std::endl;
             return false;
         }
-        if (pieces[enPassantSquare] != INVALID) {
+        if (pieces[enPassantSquare] != NO_PIECE) {
             std::cerr << "Invalid en passant square (2)" << std::endl;
             return false;
         }
@@ -231,7 +231,7 @@ bool MoveList::validMove(int move) const {
             return false;
         }
     } else {
-        if (cap != 0xF) {
+        if (cap != NO_PIECE) {
             std::cerr << "Invalid captured piece (2)" << std::endl;
             return false;
         }
@@ -252,7 +252,7 @@ bool MoveList::validMove(int move) const {
             return false;
         }
     } else {
-        if (prom != 0xF) {
+        if (prom != NO_PIECE) {
             std::cout << "Invalid promoted piece (2)" << std::endl;
             return false;
         }
@@ -262,11 +262,11 @@ bool MoveList::validMove(int move) const {
             std::cerr << "Invalid flags (3)" << std::endl;
             return false;
         }
-        if (cap != 0xF) {
+        if (cap != NO_PIECE) {
             std::cerr << "Invalid captured piece (3)" << std::endl;
             return false;
         }
-        if (prom != 0xF) {
+        if (prom != NO_PIECE) {
             std::cout << "Invalid promoted piece (3)" << std::endl;
             return false;
         }
@@ -280,11 +280,11 @@ bool MoveList::validMove(int move) const {
             std::cerr << "Invalid flags (4)" << std::endl;
             return false;
         }
-        if (cap != 0xF) {
+        if (cap != NO_PIECE) {
             std::cerr << "Invalid captured piece (4)" << std::endl;
             return false;
         }
-        if (prom != 0xF) {
+        if (prom != NO_PIECE) {
             std::cout << "Invalid promoted piece (4)" << std::endl;
             return false;
         }
@@ -301,11 +301,11 @@ bool MoveList::validMove(int move) const {
             std::cerr << "Invalid flags (5)" << std::endl;
             return false;
         }
-        if (cap != 0xF) {
+        if (cap != NO_PIECE) {
             std::cerr << "Invalid captured piece (5)" << std::endl;
             return false;
         }
-        if (prom != 0xF) {
+        if (prom != NO_PIECE) {
             std::cout << "Invalid promoted piece (5)" << std::endl;
             return false;
         }

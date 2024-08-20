@@ -493,7 +493,7 @@ int Board::evaluatePosition() const {
         if (whitePawnIsProtected(pawn, friendlyPawns))             eval += 5;
         if (whitePawnIsPassed(pawn, enemyPawns))                   eval += 20;
         if (whitePawnIsBackwards(pawn, friendlyPawns, enemyPawns)) eval -= 10;
-        if (pieces[pawn + 8] != INVALID) {
+        if (pieces[pawn + 8] != NO_PIECE) {
             eval -= 3;
             ++blockedPawns;
         }
@@ -689,7 +689,7 @@ int Board::evaluatePosition() const {
         if (blackPawnIsProtected(pawn, friendlyPawns))             eval -= 5;
         if (blackPawnIsPassed(pawn, enemyPawns))                   eval -= 20;
         if (blackPawnIsBackwards(pawn, friendlyPawns, enemyPawns)) eval += 10;
-        if (pieces[pawn - 8] != INVALID) {
+        if (pieces[pawn - 8] != NO_PIECE) {
             eval += 3;
             ++blockedPawns;
         }

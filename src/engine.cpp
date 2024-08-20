@@ -435,7 +435,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
                         if (prevMove != INVALID) {
                             int prevTo = (prevMove >> 6) & 0x3F;
                             int prevPiece = board[prevTo];
-                            assert(prevPiece != INVALID);
+                            assert(prevPiece != NO_PIECE);
                             counterMoves[prevPiece][prevTo] = moveList[i];
                         }
                     }
@@ -445,7 +445,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
                 if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
                     int to = (bestMove >> 6) & 0x3F;
                     int piece = board[bestMove & 0x3F];
-                    assert(piece != INVALID);
+                    assert(piece != NO_PIECE);
                     searchHistory[piece][to] += depth * depth;
                 }
             }

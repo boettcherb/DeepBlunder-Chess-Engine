@@ -133,7 +133,7 @@ void Board::reset() {
 void Board::addPiece(int square, int piece) {
     assert(square >= 0 && square < 64);
     assert(piece >= 0 && piece < NUM_PIECE_TYPES);
-    assert(pieces[square] == INVALID);
+    assert(pieces[square] == NO_PIECE);
     pieces[square] = piece;
     uint64 mask = 1ULL << square;
     pieceBitboards[piece] ^= mask;
@@ -152,9 +152,9 @@ void Board::addPiece(int square, int piece) {
  */
 void Board::clearPiece(int square) {
     assert(square >= 0 && square < 64);
-    assert(pieces[square] != INVALID);
+    assert(pieces[square] != NO_PIECE);
     int piece = pieces[square];
-    pieces[square] = INVALID;
+    pieces[square] = NO_PIECE;
     uint64 mask = 1ULL << square;
     pieceBitboards[piece] ^= mask;
     colorBitboards[pieceColor[piece]] ^= mask;
@@ -175,11 +175,11 @@ void Board::movePiece(int from, int to) {
     assert(from >= 0 && from < 64);
     assert(to >= 0 && to < 64);
     assert(from != to);
-    assert(pieces[from] != INVALID);
-    assert(pieces[to] == INVALID);
+    assert(pieces[from] != NO_PIECE);
+    assert(pieces[to] == NO_PIECE);
     int piece = pieces[from];
     pieces[to] = piece;
-    pieces[from] = INVALID;
+    pieces[from] = NO_PIECE;
     uint64 mask = (1ULL << to) | (1ULL << from);
     pieceBitboards[piece] ^= mask;
     colorBitboards[pieceColor[piece]] ^= mask;
@@ -440,7 +440,7 @@ bool Board::isRepetition() const {
 uint64 Board::generatePositionKey() const {
     uint64 key = sideToMove == WHITE ? hashkey::getSideKey() : 0ULL;
     for (int sq = 0; sq < 64; ++sq) {
-        if (pieces[sq] != INVALID) {
+        if (pieces[sq] != NO_PIECE) {
             key ^= hashkey::getPieceKey(pieces[sq], sq);
         }
     }

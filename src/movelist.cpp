@@ -133,16 +133,15 @@ int MoveList::operator[](int index) const {
  * Combine all the parts of a move into a single 32-bit integer. This saves a
  * lot of memory per move and allows many more moves to be stored in the
  * transposition table. (The promoted piece is handled in addPawnMove(), so we
- * assume that it is INVALID here).
+ * assume that it is NO_PIECE here).
  * 
  */
 int MoveList::getMove(int from, int to, int cap, int flags) const {
     assert(from >= 0 && from < 64);
     assert(to >= 0 && to < 64);
-    assert(cap == INVALID || (cap >= 0 && cap < NUM_PIECE_TYPES));
+    assert(cap == NO_PIECE || (cap >= 0 && cap < NUM_PIECE_TYPES));
     assert((flags & ~MOVE_FLAGS) == 0);
-    cap = cap & 0xF;
-    int prom = 0xF;
+    int prom = NO_PIECE;
     int move = from | (to << 6) | (cap << 12) | (prom << 16) | flags;
     assert(validMove(move));
     return move;
@@ -159,11 +158,11 @@ int MoveList::getMove(int from, int to, int cap, int flags) const {
  */
 void MoveList::generatePieceMoves(int sq, uint64 attacks) {
     assert(sq >= 0 && sq < 64);
-    assert(board[sq] != INVALID);
+    assert(board[sq] != NO_PIECE);
     while (attacks) {
         int to = getLSB(attacks);
-        if (board[to] == INVALID) {
-            int move = getMove(sq, to, INVALID, 0);
+        if (board[to] == NO_PIECE) {
+            int move = getMove(sq, to, NO_PIECE, 0);
             moves.emplace_back(move, moveScore[board[sq]]);
         } else {
             int move = getMove(sq, to, board[to], CAPTURE_FLAG);
@@ -219,7 +218,7 @@ void MoveList::generateWhitePawnMoves() {
     uint64 pawnStarts = ((pawnMoves & 0x0000000000FF0000) << 8) & ~allPieces;
     while (pawnMoves) {
         int to = getLSB(pawnMoves);
-        int move = getMove(to - 8, to, INVALID, 0);
+        int move = getMove(to - 8, to, NO_PIECE, 0);
         addPawnMove(move, moveScore[WHITE_PAWN]);
         pawnMoves &= pawnMoves - 1;
     }
@@ -240,18 +239,18 @@ void MoveList::generateWhitePawnMoves() {
     }
     while (pawnStarts) {
         int to = getLSB(pawnStarts);
-        int move = getMove(to - 16, to, INVALID, PAWN_START_FLAG);
+        int move = getMove(to - 16, to, NO_PIECE, PAWN_START_FLAG);
         moves.emplace_back(move, pawnStartScore);
         pawnStarts &= pawnStarts - 1;
     }
     int ep = board.getEnPassantSquare();
     if (ep != INVALID) {
         if (ep != 47 && board[ep - 7] == WHITE_PAWN) {
-            int move = getMove(ep - 7, ep, INVALID, EN_PASSANT_FLAG);
+            int move = getMove(ep - 7, ep, NO_PIECE, EN_PASSANT_FLAG);
             moves.emplace_back(move, enPassantScore);
         }
         if (ep != 40 && board[ep - 9] == WHITE_PAWN) {
-            int move = getMove(ep - 9, ep, INVALID, EN_PASSANT_FLAG);
+            int move = getMove(ep - 9, ep, NO_PIECE, EN_PASSANT_FLAG);
             moves.emplace_back(move, enPassantScore);
         }
     }
@@ -263,7 +262,7 @@ void MoveList::generateBlackPawnMoves() {
     uint64 pawnStarts = ((pawnMoves & 0x0000FF0000000000) >> 8) & ~allPieces;
     while (pawnMoves) {
         int to = getLSB(pawnMoves);
-        int move = getMove(to + 8, to, INVALID, 0);
+        int move = getMove(to + 8, to, NO_PIECE, 0);
         addPawnMove(move, moveScore[BLACK_PAWN]);
         pawnMoves &= pawnMoves - 1;
     }
@@ -284,18 +283,18 @@ void MoveList::generateBlackPawnMoves() {
     }
     while (pawnStarts) {
         int to = getLSB(pawnStarts);
-        int move = getMove(to + 16, to, INVALID, PAWN_START_FLAG);
+        int move = getMove(to + 16, to, NO_PIECE, PAWN_START_FLAG);
         moves.emplace_back(move, pawnStartScore);
         pawnStarts &= pawnStarts - 1;
     }
     int ep = board.getEnPassantSquare();
     if (ep != INVALID) {
         if (ep != 16 && board[ep + 7] == BLACK_PAWN) {
-            int move = getMove(ep + 7, ep, INVALID, EN_PASSANT_FLAG);
+            int move = getMove(ep + 7, ep, NO_PIECE, EN_PASSANT_FLAG);
             moves.emplace_back(move, enPassantScore);
         }
         if (ep != 23 && board[ep + 9] == BLACK_PAWN) {
-            int move = getMove(ep + 9, ep, INVALID, EN_PASSANT_FLAG);
+            int move = getMove(ep + 9, ep, NO_PIECE, EN_PASSANT_FLAG);
             moves.emplace_back(move, enPassantScore);
         }
     }
@@ -317,13 +316,13 @@ void MoveList::generateWhiteCastleMoves() {
 
     if (castlePerms & CASTLE_WK) {
         if (!(allPieces & 0x60) && !board.squaresAttacked(0x70, BLACK)) {
-            int move = getMove(E1, G1, INVALID, CASTLE_FLAG);
+            int move = getMove(E1, G1, NO_PIECE, CASTLE_FLAG);
             moves.emplace_back(move, castleScore);
         }
     }
     if (castlePerms & CASTLE_WQ) {
         if (!(allPieces & 0xE) && !board.squaresAttacked(0x1C, BLACK)) {
-            int move = getMove(E1, C1, INVALID, CASTLE_FLAG);
+            int move = getMove(E1, C1, NO_PIECE, CASTLE_FLAG);
             moves.emplace_back(move, castleScore);
         }
     }
@@ -334,14 +333,14 @@ void MoveList::generateBlackCastleMoves() {
     if (castlePerms & CASTLE_BK) {
         if (!(allPieces & 0x6000000000000000ULL) &&
             !board.squaresAttacked(0x7000000000000000ULL, WHITE)) {
-            int move = getMove(E8, G8, INVALID, CASTLE_FLAG);
+            int move = getMove(E8, G8, NO_PIECE, CASTLE_FLAG);
             moves.emplace_back(move, castleScore);
         }
     }
     if (castlePerms & CASTLE_BQ) {
         if (!(allPieces & 0x0E00000000000000ULL) &&
             !board.squaresAttacked(0x1C00000000000000ULL, WHITE)) {
-            int move = getMove(E8, C8, INVALID, CASTLE_FLAG);
+            int move = getMove(E8, C8, NO_PIECE, CASTLE_FLAG);
             moves.emplace_back(move, castleScore);
         }
     }
@@ -443,11 +442,11 @@ void MoveList::generateWhitePawnCaptureMoves() {
     int ep = board.getEnPassantSquare();
     if (ep != INVALID) {
         if (ep != 47 && board[ep - 7] == WHITE_PAWN) {
-            int move = getMove(ep - 7, ep, INVALID, EN_PASSANT_FLAG);
+            int move = getMove(ep - 7, ep, NO_PIECE, EN_PASSANT_FLAG);
             moves.emplace_back(move, enPassantScore);
         }
         if (ep != 40 && board[ep - 9] == WHITE_PAWN) {
-            int move = getMove(ep - 9, ep, INVALID, EN_PASSANT_FLAG);
+            int move = getMove(ep - 9, ep, NO_PIECE, EN_PASSANT_FLAG);
             moves.emplace_back(move, enPassantScore);
         }
     }
@@ -472,11 +471,11 @@ void MoveList::generateBlackPawnCaptureMoves() {
     int ep = board.getEnPassantSquare();
     if (ep != INVALID) {
         if (ep != 16 && board[ep + 7] == BLACK_PAWN) {
-            int move = getMove(ep + 7, ep, INVALID, EN_PASSANT_FLAG);
+            int move = getMove(ep + 7, ep, NO_PIECE, EN_PASSANT_FLAG);
             moves.emplace_back(move, enPassantScore);
         }
         if (ep != 23 && board[ep + 9] == BLACK_PAWN) {
-            int move = getMove(ep + 9, ep, INVALID, EN_PASSANT_FLAG);
+            int move = getMove(ep + 9, ep, NO_PIECE, EN_PASSANT_FLAG);
             moves.emplace_back(move, enPassantScore);
         }
     }

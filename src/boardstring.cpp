@@ -132,7 +132,7 @@ bool Board::setToFEN(const std::string& fen) {
                 default:
                     int spaces = static_cast<int>(c - '0');
                     while (spaces--) {
-                        pieces[square++] = INVALID;
+                        pieces[square++] = NO_PIECE;
                     }
             }
         }
@@ -207,7 +207,7 @@ bool Board::setToFEN(const std::string& fen) {
     material[WHITE] = material[BLACK] = 0;
 
     for (int sq = 0; sq < 64; ++sq) {
-        if (pieces[sq] == INVALID) continue;
+        if (pieces[sq] == NO_PIECE) continue;
         assert(pieces[sq] >= 0 && pieces[sq] < NUM_PIECE_TYPES);
         material[pieceColor[pieces[sq]]] += pieceMaterial[pieces[sq]];
         pieceBitboards[pieces[sq]] |= 1ULL << sq;
