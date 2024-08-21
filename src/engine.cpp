@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cstring>
 
 static inline constexpr int INF = 1000000000;
@@ -62,7 +63,7 @@ void Engine::initialize() {
     uint64 entries = table.initialize();
     if (entries > 0) {
         log("Hash table initialized to " + std::to_string(entries) + " entries");
-}
+    }
 }
 
 
@@ -327,10 +328,8 @@ int Engine::quiescence(int alpha, int beta) {
         }
         alpha = bestEval;
     }
-    int bestMove = INVALID;
-    table.retrieve(board.getPositionKey(), INF, 0, 0, bestMove, bestEval);
     MoveList moveList(board, true);
-    moveList.orderMoves(bestMove, searchKillers, searchHistory, counterMoves);
+    moveList.orderMoves(INVALID, searchKillers, searchHistory, counterMoves);
     int numMoves = moveList.numMoves();
     for (int i = 0; i < numMoves; ++i) {
         assert(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG));
