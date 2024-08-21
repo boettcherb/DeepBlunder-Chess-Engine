@@ -104,7 +104,7 @@ static void uci() {
     std::thread searchThread;
     std::cout << "id name DeepBlunder " << VERSION << '\n';
     std::cout << "id author Brandon Boettcher\n";
-    std::cout << "option name Hash type spin default 128 min 1 max 4096\n";
+    std::cout << "option name Hash type spin default 256 min 1 max 4096\n";
     std::cout << "option name Move Overhead type spin default 100 min 0 max 5000\n";
     std::cout << "option name Log File type string default deepblunder.log\n";
     std::cout << "uciok" << std::endl;

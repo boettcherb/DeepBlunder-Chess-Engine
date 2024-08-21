@@ -82,7 +82,7 @@ class Engine {
     int counterMoves[NUM_PIECE_TYPES][64];
 
     // UCI options
-    int hashTableSize = 128;
+    int hashTableSize = 256;
     int moveOverhead = 100;
     std::string logFile = "deepblunder.log";
 
