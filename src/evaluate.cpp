@@ -354,7 +354,7 @@ static inline constexpr char pawnDistPenalty[8] = {
  * penalty of 20, etc.
  * 
  */
-static inline constexpr char mobilityPenalty[32] = { 30, 20, 4, 1, };
+static inline constexpr char mobilityPenalty[32] = { 50, 30, 10, 1, };
 
 
 /*
