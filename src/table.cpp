@@ -76,7 +76,6 @@ bool TranspositionTable::retrieve(uint64 key, int depth, int alpha, int beta,
     int index = static_cast<int>(key % table.size());
     const Entry& entry = table[index];
     if (key == entry.key) {
-        bestMove = entry.move;
         if (entry.depth >= depth) {
             if (entry.type == EXACT) {
                 eval = entry.eval;
@@ -91,6 +90,20 @@ bool TranspositionTable::retrieve(uint64 key, int depth, int alpha, int beta,
                 return true;
             }
         }
+        bestMove = entry.move;
     }
     return false;
+}
+
+
+/*
+ * 
+ * Retrieve only the best move stored for the current position. This is used to
+ * get the principal variation line after the search completes.
+ * 
+ */
+int TranspositionTable::retrieveMove(uint64 key) const {
+    assert(initialized);
+    int index = static_cast<int>(key % table.size());
+    return table[index].key == key ? table[index].move : INVALID;
 }

@@ -31,4 +31,5 @@ public:
                int depth, NodeType type);
     bool retrieve(uint64 key, int depth, int alpha, int beta,
                   int& bestMove, int& eval) const;
+    int retrieveMove(uint64 key) const;
 };
