@@ -214,22 +214,12 @@ void Engine::makeMoves(const std::vector<std::string>& moves) {
 std::vector<std::string> Engine::getPVLine(int depth) {
     std::vector<std::string> moves;
     while (depth--) {
-        int storedMove = INVALID, eval = 0;
-        table.retrieve(board.getPositionKey(), 0, 0, 0, storedMove, eval);
-        if (storedMove == INVALID) {
+        int storedMove = table.retrieveMove(board.getPositionKey());
+        if (storedMove != INVALID && board.makeMove(storedMove)) {
+            moves.push_back(board.getMoveString(storedMove));
+        } else {
             break;
         }
-        MoveList moveList(board);
-        if (!moveList.moveExists(storedMove)) {
-            break;
-        }
-        moves.push_back(board.getMoveString(storedMove));
-#ifndef NDEBUG
-        bool moveMade = board.makeMove(storedMove);
-        assert(moveMade);
-#else
-        board.makeMove(storedMove);
-#endif
     }
     for (int i = 0; i < static_cast<int>(moves.size()); ++i) {
         board.undoMove();
