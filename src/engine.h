@@ -53,6 +53,10 @@ struct SearchInfo {
  *                such as when to stop the search, the maximum depth to search
  *                to, the time remaining on the clock, and the number of nodes
  *                visited in the search tree.
+ * pvMove:        The best move found for the search's root position. Storing
+ *                this move here allows it to be used even if the search is
+ *                cancelled (which would normally discard all work from an
+ *                incomplete search to a certain depth).
  * searchKillers: Killer move heuristic. Used for ordering non-capture moves in
  *                the Alpha-Beta algorithm. When a non-capture move causes a
  *                beta cutoff, store the move indexed by search depth (store 2
@@ -63,9 +67,6 @@ struct SearchInfo {
  *                alpha, store the piece type and the 'to' square. If a similar
  *                move occurs, order it ahead of all other non-capture moves
  *                (but below killer moves).
- * initialized:   A boolean set to true if the engine has been initialized (the
- *                transposition table, sliding piece attack tables, and zobrist
- *                hash keys have been created).
  * 
  */
 class Engine {
@@ -73,6 +74,7 @@ class Engine {
     Board board;
     TranspositionTable table;
     SearchInfo info;
+    int pvMove;
     std::ofstream logger;
     std::mutex logger_mutex;
 

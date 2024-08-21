@@ -250,6 +250,7 @@ void Engine::stopSearch() {
  */
 void Engine::setupSearch() {
     initialize();
+    pvMove = INVALID;
     info.nodes = 0;
     info.stop = false;
     info.startTime = currentTime();
@@ -315,7 +316,7 @@ int Engine::quiescence(int alpha, int beta) {
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
-    if ((board.getSearchPly() > 0 && board.isRepetition())
+    if (info.stop || (board.getSearchPly() > 0 && board.isRepetition())
         || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
@@ -381,7 +382,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
-    if ((board.getSearchPly() > 0 && board.isRepetition())
+    if (info.stop || (board.getSearchPly() > 0 && board.isRepetition())
         || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
@@ -407,6 +408,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
         if (eval > bestEval) {
             bestEval = eval;
             bestMove = moveList[i];
+            pvMove = board.getSearchPly() == 0 ? bestMove : pvMove;
             if (eval > alpha) {
                 if (eval >= beta) {
                     if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
@@ -472,7 +474,6 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
 void Engine::searchPosition(const SearchInfo& searchInfo) {
     info = searchInfo;
     setupSearch();
-    std::string bestMove;
     for (int depth = 1; depth <= info.maxDepth; ++depth) {
         int eval = alphaBeta(-INF, INF, depth);
         if (info.stop) {
@@ -509,7 +510,7 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
             break;
         }
     }
-    assert(bestMove != "");
+    std::string bestMove = board.getMoveString(pvMove);
     std::cout << "bestmove " << bestMove << std::endl;
     log("bestmove " + bestMove);
 }
