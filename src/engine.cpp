@@ -479,31 +479,28 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         if (info.stop) {
             break;
         }
+        std::stringstream ss;
+        if (eval > 20000) {
+            ss << "info score mate " << (MATE - eval + 1) / 2;
+        } else if (eval < -20000) {
+            ss << "info score mate " << -((MATE + eval + 1) / 2);
+        } else {
+            ss << "info score cp " << eval;
+        }
+        uint64 time = currentTime() - info.startTime;
+        ss << " depth " << depth;
+        ss << " nodes " << info.nodes;
+        ss << " time " << time;
+        if (time > 0) {
+            ss << " nps " << (info.nodes * 1000 / time);
+        }
         std::vector<std::string> pvLine = getPVLine(depth);
         assert(pvLine.size() > 0);
-        std::string info_string;
-        bestMove = pvLine[0];
-        if (eval > 20000) {
-            int mate = MATE - eval;
-            info_string += "info score mate " + std::to_string((mate + 1) / 2);
-        }
-        else if (eval < -20000) {
-            int mate = MATE + eval;
-            info_string += "info score mate " + std::to_string(-((mate + 1) / 2));
-        }
-        else {
-            info_string += "info score cp " + std::to_string(eval);
-        }
-        info_string += " depth " + std::to_string(depth);
-        info_string += " nodes " + std::to_string(info.nodes);
-        uint64 time = currentTime() - info.startTime;
-        info_string += " time " + std::to_string(time) + " pv";
-        if (time > 0) {
-            info_string += " nps " + std::to_string(info.nodes * 1000 / time);
-        }
+        ss << " pv";
         for (std::string moveString : pvLine) {
-            info_string += " " + moveString;
+            ss << " " << moveString;
         }
+        std::string info_string = ss.str();
         std::cout << info_string << std::endl;
         log(info_string);
         if (eval > 20000) {
