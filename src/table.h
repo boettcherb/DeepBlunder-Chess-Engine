@@ -3,11 +3,19 @@
 #include "defs.h"
 #include <vector>
 
+enum NodeType : unsigned char {
+    EXACT, UPPER_BOUND, LOWER_BOUND, NONE
+};
+
 class TranspositionTable {
+
 
     struct Entry {
         uint64 key;
         int move;
+        short eval;
+        unsigned char depth;
+        NodeType type;
     };
 
     std::vector<Entry> table;
@@ -19,6 +27,8 @@ public:
 
     void setSize(int sizeInMB);
     void initialize();
-    void store(uint64 key, int move);
-    int retrieve(uint64 key) const;
+    void store(uint64 key, int move, int score,
+               int depth, NodeType type);
+    bool retrieve(uint64 key, int depth, int alpha, int beta,
+                  int& bestMove, int& eval) const;
 };

@@ -213,7 +213,8 @@ void Engine::makeMoves(const std::vector<std::string>& moves) {
 std::vector<std::string> Engine::getPVLine(int depth) {
     std::vector<std::string> moves;
     while (depth--) {
-        int storedMove = table.retrieve(board.getPositionKey());
+        int storedMove = INVALID, eval = 0;
+        table.retrieve(board.getPositionKey(), 0, 0, 0, storedMove, eval);
         if (storedMove == INVALID) {
             break;
         }
@@ -330,45 +331,46 @@ int Engine::quiescence(int alpha, int beta) {
         || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
-    int eval = board.evaluatePosition();
-    if (eval > alpha) {
-        alpha = eval;
-        if (beta <= alpha) {
+    int bestEval = board.evaluatePosition();
+    if (bestEval > alpha) {
+        if (bestEval >= beta) {
             return beta;
         }
+        alpha = bestEval;
+    }
+    int bestMove = INVALID;
+    if (table.retrieve(board.getPositionKey(), INF, alpha, beta, bestMove, bestEval)) {
+        return bestEval;
     }
     MoveList moveList(board, true);
-    int storedBestMove = table.retrieve(board.getPositionKey());
-    moveList.orderMoves(storedBestMove, searchKillers,
-        searchHistory, counterMoves);
-    int numMoves = moveList.numMoves(), legalMoves = 0;
-    int bestMove = INVALID;
-    int oldAlpha = alpha;
+    moveList.orderMoves(bestMove, searchKillers, searchHistory, counterMoves);
+    int numMoves = moveList.numMoves(), legalMoves = 0, oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
         assert(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG));
-        if (board.makeMove(moveList[i])) {
-            eval = -quiescence(-beta, -alpha);
-            ++legalMoves;
-            board.undoMove();
-            if (info.stop) {
-                return 0;
-            }
-            if (eval > alpha) {
-                alpha = eval;
-                if (beta <= alpha) {
+        if (!board.makeMove(moveList[i])) {
+            continue;
+        }
+        int eval = -quiescence(-beta, -alpha);
+        ++legalMoves;
+        board.undoMove();
+        if (info.stop) {
+            return 0;
+        }
+        if (eval > alpha) {
+            if (eval >= beta) {
  #ifndef NDEBUG
-                    info.fhf += legalMoves == 1;
-                    ++info.fh;
+                info.fhf += legalMoves == 1;
+                ++info.fh;
  #endif
-                    return beta;
-                }
-                bestMove = moveList[i];
+                return beta;
             }
+            alpha = eval;
+            bestMove = moveList[i];
         }
     }
     if (alpha != oldAlpha) {
         assert(bestMove != INVALID);
-        table.store(board.getPositionKey(), bestMove);
+        table.store(board.getPositionKey(), bestMove, 0, 0, NONE);
     }
     return alpha;
 }
@@ -407,27 +409,34 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
         || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
+    int bestMove = INVALID;
+    int bestEval = -INF;
+    if (table.retrieve(board.getPositionKey(), depth, alpha, beta,
+                       bestMove, bestEval)) {
+        return bestEval;
+    }
     MoveList moveList(board);
-    int storedBestMove = table.retrieve(board.getPositionKey());
-    moveList.orderMoves(storedBestMove, searchKillers,
-        searchHistory, counterMoves);
-    int numMoves = moveList.numMoves(), legalMoves = 0, bestMove = INVALID;
-    int oldAlpha = alpha;
+    moveList.orderMoves(bestMove, searchKillers, searchHistory, counterMoves);
+    int numMoves = moveList.numMoves(), legalMoves = 0, oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
-        if (board.makeMove(moveList[i])) {
-            int eval = -alphaBeta(-beta, -alpha, depth - 1);
-            ++legalMoves;
-            board.undoMove();
-            if (info.stop) {
-                return 0;
-            }
+        if (!board.makeMove(moveList[i])) {
+            continue;
+        }
+        int eval = -alphaBeta(-beta, -alpha, depth - 1);
+        board.undoMove();
+        if (info.stop) {
+            return 0;
+        }
+        ++legalMoves;
+        if (eval > bestEval) {
+            bestEval = eval;
+            bestMove = moveList[i];
             if (eval > alpha) {
-                alpha = eval;
-                if (beta <= alpha) {
- #ifndef NDEBUG
+                if (eval >= beta) {
+#ifndef NDEBUG
                     info.fhf += legalMoves == 1;
                     ++info.fh;
- #endif
+#endif
                     if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
                         int sp = board.getSearchPly();
                         searchKillers[sp][1] = searchKillers[sp][0];
@@ -440,9 +449,11 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
                             counterMoves[prevPiece][prevTo] = moveList[i];
                         }
                     }
+                    table.store(board.getPositionKey(), bestMove, beta,
+                                depth, LOWER_BOUND);
                     return beta;
                 }
-                bestMove = moveList[i];
+                alpha = eval;
                 if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
                     int to = (bestMove >> 6) & 0x3F;
                     int piece = board[bestMove & 0x3F];
@@ -462,7 +473,9 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
     }
     if (alpha != oldAlpha) {
         assert(bestMove != INVALID);
-        table.store(board.getPositionKey(), bestMove);
+        table.store(board.getPositionKey(), bestMove, bestEval, depth, EXACT);
+    } else {
+        table.store(board.getPositionKey(), bestMove, alpha, depth, UPPER_BOUND);
     }
     return alpha;
 }
