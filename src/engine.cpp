@@ -333,12 +333,10 @@ int Engine::quiescence(int alpha, int beta) {
         alpha = bestEval;
     }
     int bestMove = INVALID;
-    if (table.retrieve(board.getPositionKey(), INF, alpha, beta, bestMove, bestEval)) {
-        return bestEval;
-    }
+    table.retrieve(board.getPositionKey(), INF, 0, 0, bestMove, bestEval);
     MoveList moveList(board, true);
     moveList.orderMoves(bestMove, searchKillers, searchHistory, counterMoves);
-    int numMoves = moveList.numMoves(), oldAlpha = alpha;
+    int numMoves = moveList.numMoves();
     for (int i = 0; i < numMoves; ++i) {
         assert(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG));
         if (!board.makeMove(moveList[i])) {
@@ -354,12 +352,7 @@ int Engine::quiescence(int alpha, int beta) {
                 return beta;
             }
             alpha = eval;
-            bestMove = moveList[i];
         }
-    }
-    if (alpha != oldAlpha) {
-        assert(bestMove != INVALID);
-        table.store(board.getPositionKey(), bestMove, 0, 0, NONE);
     }
     return alpha;
 }
