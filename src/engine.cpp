@@ -501,7 +501,11 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         }
         info_string += " depth " + std::to_string(depth);
         info_string += " nodes " + std::to_string(info.nodes);
-        info_string += " time " + std::to_string(currentTime() - info.startTime) + " pv";
+        uint64 time = currentTime() - info.startTime;
+        info_string += " time " + std::to_string(time) + " pv";
+        if (time > 0) {
+            info_string += " nps " + std::to_string(info.nodes * 1000 / time);
+        }
         for (std::string moveString : pvLine) {
             info_string += " " + moveString;
         }
