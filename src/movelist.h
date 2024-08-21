@@ -25,7 +25,6 @@ public:
     void orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
                     int searchHistory[NUM_PIECE_TYPES][64],
                     int counterMove[NUM_PIECE_TYPES][64]);
-    bool moveExists(int move);
 
 private:
     int getMove(int from, int to, int cap, int flags) const;

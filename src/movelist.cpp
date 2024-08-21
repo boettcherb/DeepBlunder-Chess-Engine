@@ -594,24 +594,3 @@ void MoveList::orderMoves(int bestMove, int killers[MAX_SEARCH_DEPTH][2],
     std::sort(moves.begin(), moves.end(), compareMoves);
 }
 
-
-/*
- *
- * Check to see if the given move is legal on the current board. If the move is
- * possible in the current position and it does not leave the king in check,
- * then return true. Otherwise return false.
- *
- */
-bool MoveList::moveExists(int move) {
-    assert(validMove(move));
-    for (const Move& m : moves) {
-        if (m.move == move) {
-            if (board.makeMove(m.move)) {
-                board.undoMove();
-                return true;
-            }
-            return false;
-        }
-    }
-    return false;
-}
