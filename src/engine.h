@@ -27,8 +27,6 @@
  * time:      The time remaining on the clock (for both sides).
  * movetime:  The time that should be spent on the current move.
  * movestogo: The number of moves remaining for the current time control.
- * fh, fhf:   fail high and fail high first. The ratio fhf/fh is used to see
- *            how good our move ordering is in the Alpha-Beta algorithm.
  * 
  */
 struct SearchInfo {
@@ -42,9 +40,6 @@ struct SearchInfo {
     int time[2];
     int movetime;
     int movestogo;
-#ifndef NDEBUG
-    float fh, fhf;    
-#endif
     SearchInfo();
 };
 

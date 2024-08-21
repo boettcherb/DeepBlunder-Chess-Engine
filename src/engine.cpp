@@ -29,9 +29,6 @@ SearchInfo::SearchInfo() {
     time[WHITE] = time[BLACK] = -1;
     movetime = -1;
     movestogo = 30;
-#ifndef NDEBUG
-    fh = fhf = 0.0f;
-#endif
 }
 
 
@@ -279,9 +276,6 @@ void Engine::setupSearch() {
     board.resetSearchPly();
     std::memset(searchHistory, 0, sizeof(searchHistory));
     std::memset(searchKillers, 0, sizeof(searchKillers));
- #ifndef NDEBUG
-    info.fh = info.fhf = 0.0f;
- #endif
     std::string time_info = "timeSet: " + std::to_string(info.timeSet) + ", ";
     if (side == WHITE) {
         time_info += "wtime: " + std::to_string(info.time[side]) + ", ";
@@ -344,24 +338,19 @@ int Engine::quiescence(int alpha, int beta) {
     }
     MoveList moveList(board, true);
     moveList.orderMoves(bestMove, searchKillers, searchHistory, counterMoves);
-    int numMoves = moveList.numMoves(), legalMoves = 0, oldAlpha = alpha;
+    int numMoves = moveList.numMoves(), oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
         assert(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG));
         if (!board.makeMove(moveList[i])) {
             continue;
         }
         int eval = -quiescence(-beta, -alpha);
-        ++legalMoves;
         board.undoMove();
         if (info.stop) {
             return 0;
         }
         if (eval > alpha) {
             if (eval >= beta) {
- #ifndef NDEBUG
-                info.fhf += legalMoves == 1;
-                ++info.fh;
- #endif
                 return beta;
             }
             alpha = eval;
@@ -433,10 +422,6 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
             bestMove = moveList[i];
             if (eval > alpha) {
                 if (eval >= beta) {
-#ifndef NDEBUG
-                    info.fhf += legalMoves == 1;
-                    ++info.fh;
-#endif
                     if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
                         int sp = board.getSearchPly();
                         searchKillers[sp][1] = searchKillers[sp][0];
@@ -529,9 +514,6 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         }
         std::cout << info_string << std::endl;
         log(info_string);
- #ifndef NDEBUG
-        log("\tordering: " + std::to_string(info.fh == 0.0f ? 0.0f : info.fhf / info.fh));
- #endif
         if (eval > 20000) {
             break;
         }
