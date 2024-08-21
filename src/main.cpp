@@ -113,7 +113,7 @@ static void uci() {
     while (!quit) {
         std::string input, token;
         std::getline(std::cin, input);
-        engine.log("Received uci command: " + input);
+        engine.log(">> " + input);
         std::stringstream ss(input);
         while (ss >> token) {
             if (token == "isready") {

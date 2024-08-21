@@ -28,13 +28,15 @@ void TranspositionTable::setSize(int size) {
  * "setoption" command.
  *
  */
-void TranspositionTable::initialize() {
+int TranspositionTable::initialize() {
     assert(sizeInMB >= 0);
     if (!initialized) {
-        uint64 numEntries = (sizeInMB * 0x100000ULL) / sizeof(Entry);
+        int numEntries = (sizeInMB * 0x100000ULL) / sizeof(Entry);
         table = std::vector<Entry>(numEntries);
         initialized = true;
+        return numEntries;
     }
+    return 0;
 }
 
 

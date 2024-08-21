@@ -59,7 +59,10 @@ void Engine::initialize() {
     hashkey::initHashKeys();
     attack::initializeBishopAttackTable();
     attack::initializeRookAttackTable();
-    table.initialize();
+    uint64 entries = table.initialize();
+    if (entries > 0) {
+        log("Hash table initialized to " + std::to_string(entries) + " entries");
+}
 }
 
 
@@ -72,6 +75,7 @@ void Engine::initialize() {
 void Engine::setHashTableSize(int sizeInMB) {
     assert(sizeInMB > 0 && sizeInMB <= 4096);
     hashTableSize = sizeInMB;
+    table.setSize(sizeInMB);
     log("Setting hash table size to " + std::to_string(sizeInMB) + " MB");
 }
 

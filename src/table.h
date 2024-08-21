@@ -26,7 +26,7 @@ public:
     TranspositionTable();
 
     void setSize(int sizeInMB);
-    void initialize();
+    int initialize();
     void store(uint64 key, int move, int score,
                int depth, NodeType type);
     bool retrieve(uint64 key, int depth, int alpha, int beta,
