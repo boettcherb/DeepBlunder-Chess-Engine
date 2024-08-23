@@ -6,7 +6,7 @@
 #include <sstream>
 #include <chrono>
 
-#define VERSION v1.2.0
+#define VERSION v1.2.1
 
 #define STRINGIFY(x) #x
 #define STR(x) STRINGIFY(x)

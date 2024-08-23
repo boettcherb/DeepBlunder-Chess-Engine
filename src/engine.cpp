@@ -378,13 +378,26 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
         return quiescence(alpha, beta);
     }
     ++info.nodes;
+
+    // every 4096 nodes, check if we are out of time
     if ((info.nodes & 0xFFF) == 0) {
         checkup();
     }
+
+    // stop searching (return 0) if we are out of time, if there is a
+    // repeition, or if there is a draw by the fifty move rule
     if (info.stop || (board.getSearchPly() > 0 && board.isRepetition())
         || board.getFiftyMoveCount() >= 100) {
         return 0;
     }
+
+    // Check extension: If we are in check, extend the search
+    uint64 king = board.getPieceBitboard(board.side() ? BLACK_KING : WHITE_KING);
+    bool inCheck = board.squaresAttacked(king, board.side() ^ 1);
+    depth += inCheck;
+
+    // Get the best move/eval for the current position from the transposition
+    // table. If we are able to use the stored eval, return it.
     int bestMove = INVALID;
     int bestEval = -INF;
     if (table.retrieve(board.getPositionKey(), depth, alpha, beta,
@@ -392,8 +405,13 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
         pvMove = board.getSearchPly() == 0 ? bestMove : pvMove;
         return bestEval;
     }
+
+    // Get a list of all the moves in the current position and order them using
+    // the stored move in the hash table, MVV-LVA, the killer heuristic, the
+    // history heuristic, and the countermove heuristic.
     MoveList moveList(board);
     moveList.orderMoves(bestMove, searchKillers, searchHistory, counterMoves);
+
     int numMoves = moveList.numMoves(), legalMoves = 0, oldAlpha = alpha;
     for (int i = 0; i < numMoves; ++i) {
         if (!board.makeMove(moveList[i])) {
@@ -411,6 +429,8 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
             pvMove = board.getSearchPly() == 0 ? bestMove : pvMove;
             if (eval > alpha) {
                 if (eval >= beta) {
+                    // Beta cutoff
+                    // apply the killer and countermove heuristic
                     if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
                         int sp = board.getSearchPly();
                         searchKillers[sp][1] = searchKillers[sp][0];
@@ -423,11 +443,14 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
                             counterMoves[prevPiece][prevTo] = moveList[i];
                         }
                     }
+                    // store this move in the hash table with beta as the lower
+                    // bound of the evaluation
                     table.store(board.getPositionKey(), bestMove, beta,
                                 depth, LOWER_BOUND);
                     return beta;
                 }
                 alpha = eval;
+                // apply the history heuristic
                 if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
                     int to = (bestMove >> 6) & 0x3F;
                     int piece = board[bestMove & 0x3F];
@@ -438,17 +461,17 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
         }
     }
     if (legalMoves == 0) {
-        int kingPiece = board.side() == WHITE ? WHITE_KING : BLACK_KING;
-        uint64 king = board.getPieceBitboard(kingPiece);
-        if (board.squaresAttacked(king, board.side() ^ 1)) {
-            return -(MATE - board.getSearchPly());
-        }
-        return 0;
+        // either checkmate or stalemate
+        return inCheck ? -(MATE - board.getSearchPly()) : 0;
     }
+    assert(bestMove != INVALID);
     if (alpha != oldAlpha) {
-        assert(bestMove != INVALID);
+        // alpha was improved, but not enough to cause a beta cutoff. Store
+        // the evaluation as an exact evaluation
         table.store(board.getPositionKey(), bestMove, bestEval, depth, EXACT);
     } else {
+        // alpha was not improved. This position has an evaluation that is
+        // worse than alpha. Store it with alpha as an upper bound.
         table.store(board.getPositionKey(), bestMove, alpha, depth, UPPER_BOUND);
     }
     return alpha;
