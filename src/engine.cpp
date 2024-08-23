@@ -142,7 +142,11 @@ void Engine::log(const std::string& message) {
  * 
  */
 bool Engine::setupBoard(const std::string& fen) {
-    return board.setToFEN(fen);
+    if (!board.setToFEN(fen)) {
+        log("Error setting board to fen: " + fen);
+        return false;
+    }
+    return true;
 }
 
 
