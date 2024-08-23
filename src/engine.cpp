@@ -389,6 +389,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
     int bestEval = -INF;
     if (table.retrieve(board.getPositionKey(), depth, alpha, beta,
                        bestMove, bestEval)) {
+        pvMove = board.getSearchPly() == 0 ? bestMove : pvMove;
         return bestEval;
     }
     MoveList moveList(board);
@@ -505,6 +506,9 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
         if (eval > 20000) {
             break;
         }
+    }
+    if (pvMove == INVALID) {
+        log("Error: pvMove not set");
     }
     std::string bestMove = board.getMoveString(pvMove);
     std::cout << "bestmove " << bestMove << std::endl;

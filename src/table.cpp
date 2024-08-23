@@ -76,6 +76,7 @@ bool TranspositionTable::retrieve(uint64 key, int depth, int alpha, int beta,
     int index = static_cast<int>(key % table.size());
     const Entry& entry = table[index];
     if (key == entry.key) {
+        bestMove = entry.move;
         if (entry.depth >= depth) {
             if (entry.type == EXACT) {
                 eval = entry.eval;
@@ -90,7 +91,6 @@ bool TranspositionTable::retrieve(uint64 key, int depth, int alpha, int beta,
                 return true;
             }
         }
-        bestMove = entry.move;
     }
     return false;
 }
