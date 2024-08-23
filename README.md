@@ -22,7 +22,11 @@ Additionally:
 
 Pre-built binaries for windows and linux can be found on the [releases][releases-link] page.
 
-On windows, you can open DeepBlunder.sln with Visual Studio. Alternatively, this engine can be built with the Makefile:
+On windows, you can open DeepBlunder.sln with Visual Studio.
+
+Alternatively, this engine can be built with the Makefile:
+
+Linux:
 
 ```bash
 git clone https://github.com/boettcherb/DeepBlunder-Chess-Engine.git
@@ -30,11 +34,19 @@ cd DeepBlunder-Chess-Engine/src
 make release
 ```
 
+Windows:
+
+```bash
+git clone https://github.com/boettcherb/DeepBlunder-Chess-Engine.git
+cd DeepBlunder-Chess-Engine/src
+mingw32-make release
+```
+
 ## Running
 
 #### UCI
 
-Example starting a search from the initial chess position after running the program:
+Example starting a search from the initial chess position after running the engine:
 
 ```bash
 ./deepblunder
@@ -95,7 +107,7 @@ My plans to improve this engine in the future:
  - Add more pruning methods. There are many more pruning techniques than just Alpha-Beta pruning, such as null move pruning, late move reduction (LMR), aspiration windows, futility pruning, etc.
  - Add an Opening Book (such as PolyGlot) to save clock time at the beginning of the game and to ensure a decent position.
  - Add an Endgame Database/Tablebase (such as Syzygy). Currently, DeepBlunder cannot find a win in a King+Queen vs King game, and instead draws by the 50 move rule. An endgame database will ensure best play in endgames where a checkmate is too deep in the search tree to find with a normal search.
- - Improve the transposition table. Currently, the transposition table stores only the best move in a position, and this move is used for move ordering. In the future I want to store additional information (such as the evaluation) and use it to prune redundant branches of the search tree.
+ - Test out different Transposition table replacement strategies. Currently the engine uses the 'always replace' strategy because it is the simplest.
  - Implement multithreading to speed up the search function (Lazy SMP).
  - Improve time management. Possible Ideas:
    - If there is only one move that doesn't cause a massive disadvantage, then play it instantly.
