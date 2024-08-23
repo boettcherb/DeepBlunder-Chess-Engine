@@ -468,16 +468,11 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
         // either checkmate or stalemate
         return inCheck ? -(MATE - board.getSearchPly()) : 0;
     }
-    assert(bestMove != INVALID);
-    if (alpha != oldAlpha) {
-        // alpha was improved, but not enough to cause a beta cutoff. Store
-        // the evaluation as an exact evaluation
-        table.store(board.getPositionKey(), bestMove, bestEval, depth, EXACT);
-    } else {
-        // alpha was not improved. This position has an evaluation that is
-        // worse than alpha. Store it with alpha as an upper bound.
-        table.store(board.getPositionKey(), bestMove, alpha, depth, UPPER_BOUND);
-    }
+    // If alpha was improved (but not enough to cause a beta cutoff), then we
+    // have an exact evaluation of this position. If alpha was not improved,
+    // then the actual evaluation is < alpha, so alpha is an upper bound.
+    NodeType type = alpha == oldAlpha ? UPPER_BOUND : EXACT;
+    table.store(board.getPositionKey(), bestMove, alpha, depth, type);
     return alpha;
 }
 
