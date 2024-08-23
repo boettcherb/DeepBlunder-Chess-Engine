@@ -6,7 +6,10 @@
 #include <sstream>
 #include <chrono>
 
-constexpr auto VERSION = "v1.2.0";
+#define VERSION v1.2.0
+
+#define STRINGIFY(x) #x
+#define STR(x) STRINGIFY(x)
 
 
 static void search(Engine& engine, SearchInfo info) {
@@ -102,13 +105,13 @@ static SearchInfo uci_process_go(std::stringstream& ss) {
 static void uci() {
     Engine engine;
     std::thread searchThread;
-    std::cout << "id name DeepBlunder " << VERSION << '\n';
+    std::cout << "id name DeepBlunder " << STR(VERSION) << '\n';
     std::cout << "id author Brandon Boettcher\n";
     std::cout << "option name Hash type spin default 256 min 1 max 4096\n";
     std::cout << "option name Move Overhead type spin default 100 min 0 max 5000\n";
     std::cout << "option name Log File type string default deepblunder.log\n";
     std::cout << "uciok" << std::endl;
-    engine.log("\n\n\nStarting engine: DeepBlunder " + std::string(VERSION));
+    engine.log("\n\n\nStarting engine: DeepBlunder " + std::string(STR(VERSION)));
     bool quit = false;
     while (!quit) {
         std::string input, token;
