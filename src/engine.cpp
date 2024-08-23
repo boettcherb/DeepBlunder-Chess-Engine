@@ -416,12 +416,29 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
     MoveList moveList(board);
     moveList.orderMoves(bestMove, searchKillers, searchHistory, counterMoves);
 
-    int numMoves = moveList.numMoves(), legalMoves = 0, oldAlpha = alpha;
+    int numMoves = moveList.numMoves();
+    int legalMoves = 0;
+    bool pvNode = false;
     for (int i = 0; i < numMoves; ++i) {
         if (!board.makeMove(moveList[i])) {
             continue;
         }
-        int eval = -alphaBeta(-beta, -alpha, depth - 1);
+
+        // Principal Variation Search (PVS): If we found a move that improved
+        // alpha (but didn't cause a beta cutoff), then assume we won't find a
+        // better move (that also won't cause a beta cutoff) by reducing the 
+        // alpha-beta window to [alpha, alpha + 1]. If the assumption was wrong
+        // do a complete re-search of the position.
+        int eval = 0;
+        if (pvNode) {
+            eval = -alphaBeta(-(alpha + 1), -alpha, depth - 1);
+            if (eval > alpha && eval < beta) {
+                eval = -alphaBeta(-beta, -alpha, depth - 1);
+            }
+        } else {
+            eval = -alphaBeta(-beta, -alpha, depth - 1);
+        }
+
         board.undoMove();
         if (info.stop) {
             return 0;
@@ -454,6 +471,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
                     return beta;
                 }
                 alpha = eval;
+                pvNode = true;
                 // apply the history heuristic
                 if (!(moveList[i] & (CAPTURE_FLAG | EN_PASSANT_FLAG))) {
                     int to = (bestMove >> 6) & 0x3F;
@@ -471,7 +489,7 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
     // If alpha was improved (but not enough to cause a beta cutoff), then we
     // have an exact evaluation of this position. If alpha was not improved,
     // then the actual evaluation is < alpha, so alpha is an upper bound.
-    NodeType type = alpha == oldAlpha ? UPPER_BOUND : EXACT;
+    NodeType type = pvNode ? UPPER_BOUND : EXACT;
     table.store(board.getPositionKey(), bestMove, alpha, depth, type);
     return alpha;
 }
