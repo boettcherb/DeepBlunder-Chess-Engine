@@ -419,7 +419,6 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
     int numMoves = moveList.numMoves();
     int legalMoves = 0;
     bool pvNode = false;
-    bool fullSearch = true;
     for (int i = 0; i < numMoves; ++i) {
         if (!board.makeMove(moveList[i])) {
             continue;
@@ -435,8 +434,6 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
             eval = -alphaBeta(-(alpha + 1), -alpha, depth - 1);
             if (eval > alpha && eval < beta) {
                 eval = -alphaBeta(-beta, -alpha, depth - 1);
-            } else {
-                fullSearch = false;
             }
         } else {
             eval = -alphaBeta(-beta, -alpha, depth - 1);
@@ -491,13 +488,9 @@ int Engine::alphaBeta(int alpha, int beta, int depth) {
     }
     // If alpha was not improved, then the actual evaluation is < alpha, so alpha
     // is an upper bound. If alpha was improved (but not enough to cause a beta
-    // cutoff) then we have an exact evaluation, which we can store as long as
-    // we completed a full search of the position (not a narrow window search).
-    if (!pvNode) {
-        table.store(board.getPositionKey(), bestMove, alpha, depth, UPPER_BOUND);
-    } else if (fullSearch) {
-        table.store(board.getPositionKey(), bestMove, alpha, depth, EXACT);
-    }
+    // cutoff) then we have an exact evaluation.
+    NodeType type = pvNode ? EXACT : UPPER_BOUND;
+    table.store(board.getPositionKey(), bestMove, alpha, depth, type);
     return alpha;
 }
 
@@ -523,6 +516,7 @@ void Engine::searchPosition(const SearchInfo& searchInfo) {
     setupSearch();
     for (int depth = 1; depth <= info.maxDepth; ++depth) {
         int eval = alphaBeta(-INF, INF, depth);
+        assert(pvMove != INVALID);
         if (info.stop) {
             break;
         }
