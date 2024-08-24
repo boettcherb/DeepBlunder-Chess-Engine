@@ -51,6 +51,7 @@ int TranspositionTable::initialize() {
 void TranspositionTable::store(uint64 key, int move, int eval,
                                int depth, NodeType type) {
     assert(initialized);
+    assert(type != NONE);
     int index = static_cast<int>(key % table.size());
     table[index] = { key, move, static_cast<short>(eval),
         static_cast<unsigned char>(depth), type };
